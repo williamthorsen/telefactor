@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import packageJson from '../../package.json' with { type: 'json' };
 
 const TEMPLATE_DIRECTORY = '_workspace';
-const TEMPLATE_PACKAGE_NAME = 'node-monorepo-workspace-template';
+const TEMPLATE_PACKAGE_NAME = 'telefactor-workspace-template';
 const TEMPLATE_README_TITLE = '# Workspace template';
 
 const thisFilePath = fileURLToPath(import.meta.url);
