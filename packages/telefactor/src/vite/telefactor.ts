@@ -78,10 +78,11 @@ export function telefactor({
         void listener(request, response);
       });
       if (contract !== undefined) {
+        // Vite resolves its URLs in a `listening` listener that runs before this one.
         server.httpServer?.once('listening', () => {
-          const address = server.httpServer?.address();
-          if (typeof address !== 'object' || address === null) return;
-          server.config.logger.info(`telefactor MCP endpoint: http://localhost:${address.port}${basePath}/mcp`);
+          const local = server.resolvedUrls?.local[0];
+          if (local === undefined) return;
+          server.config.logger.info(`telefactor MCP endpoint: ${new URL(local).origin}${basePath}/mcp`);
         });
       }
       server.httpServer?.once('close', () => {

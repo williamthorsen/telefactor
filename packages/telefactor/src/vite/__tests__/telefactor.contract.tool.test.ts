@@ -96,10 +96,10 @@ describe('telefactor with a contract', () => {
     },
   );
 
-  it('logs the MCP endpoint once the server listens', () => {
+  it('logs the MCP endpoint at the origin that Vite resolves once the server listens', () => {
     expect(
       state.logged.some((message) =>
-        /^telefactor MCP endpoint: http:\/\/localhost:\d+\/api\/telefactor\/mcp$/.test(message),
+        /^telefactor MCP endpoint: http:\/\/127\.0\.0\.1:\d+\/api\/telefactor\/mcp$/.test(message),
       ),
     ).toBe(true);
   });
