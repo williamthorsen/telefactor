@@ -1,0 +1,60 @@
+{
+  "name": "@williamthorsen/telefactor",
+  "version": "0.0.0",
+  "description": "Embed the user's own agent harness in a web app",
+  "keywords": [
+    "agent",
+    "claude-code",
+    "codex",
+    "harness",
+    "rovo-dev",
+    "vite-plugin"
+  ],
+  "homepage": "https://github.com/williamthorsen/telefactor/tree/main/packages/telefactor#readme",
+  "bugs": {
+    "url": "https://github.com/williamthorsen/telefactor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/williamthorsen/telefactor.git",
+    "directory": "packages/telefactor"
+  },
+  "license": "ISC",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./client": {
+      "types": "./dist/esm/client.d.ts",
+      "default": "./dist/esm/client.js"
+    },
+    "./server": {
+      "types": "./dist/esm/server.d.ts",
+      "default": "./dist/esm/server.js"
+    },
+    "./vite": {
+      "types": "./dist/esm/vite.d.ts",
+      "default": "./dist/esm/vite.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@hono/node-server": "2.1.6",
+    "hono": "4.13.16",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@williamthorsen/nmr": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "vite": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
