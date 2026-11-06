@@ -1,7 +1,10 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { afterEach, describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
-import { createStateStore } from '#src/contract/create-state-store.ts';
+import { createStateStore, type StateStore } from '#src/contract/create-state-store.ts';
+import { defineContract } from '#src/contract/define-contract.ts';
+import { implementContract } from '#src/contract/implement-contract.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
 import type { Jobs } from '#src/jobs/create-jobs.ts';
 import { implementCounter } from '#src/test-utils/counter-contract.ts';
@@ -44,6 +47,21 @@ describe(createMcpServer, () => {
     expect(store.read().state).toStrictEqual({ count: 4 });
   });
 
+  it('runs an action whose input schema transforms its input', async () => {
+    const contract = defineContract({
+      state: z.object({ count: z.number() }),
+      actions: { set: { description: 'Sets the count.', input: z.object({ count: z.string().transform(Number) }) } },
+    });
+    const store = createStateStore(
+      implementContract(contract, { initialState: { count: 0 }, handlers: { set: (_, { count }) => ({ count }) } }),
+    );
+    const { client } = await connect(store);
+
+    const result = await client.callTool({ name: 'set', arguments: { count: '7' } });
+
+    expect(result.structuredContent).toStrictEqual({ version: 1, state: { count: 7 } });
+  });
+
   it('returns an error result for a refused action and leaves the state unchanged', async () => {
     const { client, store } = await connect();
 
@@ -56,8 +74,7 @@ describe(createMcpServer, () => {
 
 // region | Helpers
 /** Connects a client to the app's `/mcp` route through the app's own `fetch`, without a network. */
-async function connect() {
-  const store = createStateStore(implementCounter());
+async function connect(store: StateStore = createStateStore(implementCounter())) {
   const jobs: Jobs = {
     cancel: () => Promise.reject(new Error('unused')),
     cancelAll: () => Promise.resolve(),

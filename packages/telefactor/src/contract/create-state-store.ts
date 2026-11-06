@@ -28,6 +28,8 @@ export interface StateStore {
   read(): StateSnapshot;
   /** Runs an action after every call already queued, and commits its result only when the state schema accepts it. */
   run(name: string, rawInput: unknown): Promise<RunOutcome>;
+  /** Runs an action as `run` does, with input that the action's own schema has already parsed, as an MCP server does. */
+  runParsed(name: string, parsedInput: unknown): Promise<RunOutcome>;
   /** Calls the listener with each committed snapshot; returns a function that stops the calls. */
   subscribe(listener: (snapshot: StateSnapshot) => void): () => void;
 }
@@ -38,20 +40,25 @@ export function createStateStore({ contract, initialState, handlers }: ContractI
   const listeners = new Set<(snapshot: StateSnapshot) => void>();
   let queue: Promise<void> = Promise.resolve();
 
-  async function execute(name: string, rawInput: unknown): Promise<RunOutcome> {
+  async function execute(name: string, input: unknown, isParsed: boolean): Promise<RunOutcome> {
     const action = isActionName(contract, name) ? contract.actions[name] : undefined;
     if (action === undefined) {
       return { ok: false, reason: 'unknown-action', message: `"${name}" does not name an action.` };
     }
-    const input = getInputSchema(action).safeParse(rawInput);
-    if (!input.success) return { ok: false, reason: 'invalid-input', problems: toProblems(input.error.issues) };
+    // A schema's output need not satisfy the schema again, as with a transform, so parse each input once.
+    let parsedInput = input;
+    if (!isParsed) {
+      const parsed = getInputSchema(action).safeParse(input);
+      if (!parsed.success) return { ok: false, reason: 'invalid-input', problems: toProblems(parsed.error.issues) };
+      parsedInput = parsed.data;
+    }
     const handler = handlers[name];
     if (handler === undefined) {
       return { ok: false, reason: 'unknown-action', message: `"${name}" does not have a handler.` };
     }
     let next: unknown;
     try {
-      next = await handler(snapshot.state, input.data);
+      next = await handler(snapshot.state, parsedInput);
     } catch (error: unknown) {
       return { ok: false, reason: 'handler-failed', message: describeError(error) };
     }
@@ -62,14 +69,18 @@ export function createStateStore({ contract, initialState, handlers }: ContractI
     return { ok: true, snapshot };
   }
 
+  /** Runs a task after every task already queued. */
+  function enqueue(task: () => Promise<RunOutcome>): Promise<RunOutcome> {
+    const outcome = runAfter(queue, task);
+    queue = settle(outcome);
+    return outcome;
+  }
+
   return {
     contract,
     read: () => snapshot,
-    run(name, rawInput) {
-      const outcome = runAfter(queue, () => execute(name, rawInput));
-      queue = settle(outcome);
-      return outcome;
-    },
+    run: (name, rawInput) => enqueue(() => execute(name, rawInput, false)),
+    runParsed: (name, parsedInput) => enqueue(() => execute(name, parsedInput, true)),
     subscribe(listener) {
       listeners.add(listener);
       return () => {

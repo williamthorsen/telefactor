@@ -71,6 +71,31 @@ describe(createStateStore, () => {
   });
 });
 
+describe('createStateStore with a transforming input schema', () => {
+  const transforming = defineContract({
+    state: z.object({ count: z.number() }),
+    actions: { set: { description: 'Sets the count.', input: z.object({ count: z.string().transform(Number) }) } },
+  });
+  const implementation = implementContract(transforming, {
+    initialState: { count: 0 },
+    handlers: { set: (_, { count }) => ({ count }) },
+  });
+
+  it('parses raw input with the schema', async () => {
+    expect(await createStateStore(implementation).run('set', { count: '3' })).toMatchObject({
+      ok: true,
+      snapshot: { state: { count: 3 } },
+    });
+  });
+
+  it('passes input that is already parsed to the handler unparsed', async () => {
+    expect(await createStateStore(implementation).runParsed('set', { count: 3 })).toMatchObject({
+      ok: true,
+      snapshot: { state: { count: 3 } },
+    });
+  });
+});
+
 describe(implementContract, () => {
   it('throws for an initial state that the schema rejects', () => {
     expect(() =>
