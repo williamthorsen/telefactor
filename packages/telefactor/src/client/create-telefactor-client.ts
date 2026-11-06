@@ -43,8 +43,15 @@ export function createTelefactorClient({
   fetch?: typeof fetch;
 } = {}): TelefactorClient {
   async function request<T>(schema: z.ZodType<T>, route: string, init: RequestInit = {}): Promise<T> {
-    const response = await fetchFunction(`${basePath}${route}`, init);
-    const body: unknown = await response.json();
+    const url = `${basePath}${route}`;
+    const response = await fetchFunction(url, init);
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      // A `basePath` that the plugin does not serve reaches Vite's HTML fallback.
+      throw new TelefactorRequestError(response.status, `The response from ${url} is not JSON.`);
+    }
     if (!response.ok) throw buildRequestError(response.status, body);
     return schema.parse(body);
   }

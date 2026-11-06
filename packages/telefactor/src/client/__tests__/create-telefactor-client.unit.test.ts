@@ -68,6 +68,18 @@ describe(createTelefactorClient, () => {
     });
   });
 
+  it('throws a request error for a response that is not JSON', async () => {
+    const client = createTelefactorClient({
+      fetch: () => Promise.resolve(new Response('<!doctype html>', { status: 200 })),
+    });
+
+    await expect(client.getJob('x')).rejects.toMatchObject({
+      name: 'TelefactorRequestError',
+      status: 200,
+      message: 'The response from /api/telefactor/jobs/x is not JSON.',
+    });
+  });
+
   it('rejects a response that does not match the schema', async () => {
     const { client } = createFixture(200, { id: 1 });
 
