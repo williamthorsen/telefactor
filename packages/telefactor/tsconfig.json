@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // The package runs on Node, and nothing it imports pulls @types/node into the program on its own.
+    "types": ["node"],
+    // `nmr-compile` rewrites these to relative specifiers on emit.
+    "paths": {
+      "#src/*": ["./src/*"],
+    },
+  },
+  "include": ["src/", "*.ts"],
+}

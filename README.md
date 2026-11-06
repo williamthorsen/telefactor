@@ -26,5 +26,6 @@ Run `nmr` with no command to list every script and the command to which it resol
 `packages/` contains the libraries:
 
 - `_workspace`: scaffold for creating new libraries
+- `telefactor`: `@williamthorsen/telefactor`, which embeds the user's own agent harness in a web app
 
 To start a library from the scaffold, follow [Starting an app or a library from a template](docs/new-package.md).
