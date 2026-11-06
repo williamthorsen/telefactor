@@ -1,2 +1,35 @@
-/** Public entry point `@williamthorsen/telefactor/server`. */
-export {};
+/** Public entry point `@williamthorsen/telefactor/server`: the harness registry, the job runner, and the routes. */
+export { BUILT_IN_DEFAULT_HARNESS, BUILT_IN_HARNESSES } from './harness/built-in-harnesses.ts';
+export {
+  ENVIRONMENT_HARNESS_NAME,
+  HARNESS_COMMAND_VARIABLE,
+  type HarnessSettingsResult,
+  type HarnessSource,
+  readEnvironmentCommand,
+  readHarnessSettings,
+} from './harness/read-settings.ts';
+export { HARNESS_TEST_TIMEOUT_MS, runHarnessTest } from './harness/run-harness-test.ts';
+export {
+  BUILT_IN_SETTINGS,
+  DEFAULT_TIMEOUT_MINUTES,
+  findHarness,
+  type Harness,
+  harnessConfigSchema,
+  type HarnessSettings,
+  MAX_TIMEOUT_MINUTES,
+} from './harness/settings-schema.ts';
+export { createTelefactorApp, type TelefactorAppOptions } from './http/create-app.ts';
+export { isLoopbackRequest, isSameOriginRequest } from './http/request-guards.ts';
+export { createHarnessRun, describeRunFailure, MAX_OUTPUT_BYTES } from './jobs/create-harness-run.ts';
+export {
+  type CancelOutcome,
+  createJobs,
+  expandArgv,
+  type JobHarness,
+  type JobRun,
+  type JobRunInput,
+  type Jobs,
+  type JobStore,
+} from './jobs/create-jobs.ts';
+export { createInMemoryJobStore } from './jobs/in-memory-job-store.ts';
+export { type Job, jobSchema, type JobStatus } from './jobs/job-schemas.ts';
