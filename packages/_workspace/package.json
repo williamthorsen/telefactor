@@ -1,6 +1,6 @@
 {
-  "name": "node-monorepo-workspace-template",
-  "version": "1.3.0",
+  "name": "telefactor-workspace-template",
+  "version": "0.0.0",
   "private": true,
   "description": "Template for new workspace",
   "keywords": [
@@ -9,7 +9,7 @@
     "template",
     "workspace"
   ],
-  "license": "UNLICENSED",
+  "license": "ISC",
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
   "type": "module",
   "imports": {

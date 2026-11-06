@@ -1,12 +1,12 @@
 # Starting an app or a library from a template
 
-The repo keeps two kinds of workspace in two directories. `apps/` contains runnable apps that nothing imports, and each directory under it is a starter for one stack. `packages/` contains libraries that other workspaces or the public import, and `packages/_workspace` is the scaffold for a new one.
+The repo keeps two kinds of workspace in two directories. `apps/` contains runnable apps that nothing imports. `packages/` contains libraries that other workspaces or the public import, and `packages/_workspace` is the scaffold for a new one.
 
 A copy keeps its template's identity until every item below is changed, and nothing checks most of them. The exception is a template that has a `src/__tests__/template.unit.test.ts`: In a copy of it, that test fails until the workspace's `name` and README title both change.
 
 In the steps below, `<template>` is the template's path and `<target>` is the new workspace's path:
 
-- **App:** `<template>` is `apps/<starter>` for the stack, and `<target>` is `apps/<dir>`.
+- **App:** `<template>` is an existing app, `apps/<app>`, and `<target>` is `apps/<dir>`.
 - **Library:** `<template>` is `packages/_workspace`, and `<target>` is `packages/<dir>`.
 
 `<dir>` is the new workspace's directory name.

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://github.com/williamthorsen/node-monorepo-tools/raw/change-grammar-v0.2.0/packages/change-grammar/schemas/label-map.json",
+  "$schema": "https://github.com/williamthorsen/node-monorepo-tools/raw/change-grammar-v0.3.0/packages/change-grammar/schemas/label-map.json",
   "types": {
     "feat": "feature",
     "drop": "removal",
@@ -19,11 +19,6 @@
   },
   "scopes": {
     "_workspace": "scope:_workspace",
-    "api": "scope:api",
-    "cdk": "scope:cdk",
-    "chrome": "scope:chrome",
-    "nextjs": "scope:nextjs",
-    "react": "scope:react",
     "root": "scope:root"
   }
 }

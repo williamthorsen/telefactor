@@ -6,7 +6,7 @@
       {
         "addedAt": "2026-11-05T07:16:01.516Z",
         "id": "1244623",
-        "path": "apps__nextjs>@williamthorsen/eslint-config-typescript>eslint>@eslint/config-array>minimatch",
+        "path": ".>typescript-eslint>@typescript-eslint/parser>@typescript-eslint/typescript-estree>minimatch",
         "reason": "Added by v11y sync at 2026-11-05 07:16:01 UTC",
         "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249"
       }
