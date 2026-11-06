@@ -1,0 +1,55 @@
+{
+  "name": "node-monorepo-nextjs-template",
+  "version": "1.3.0",
+  "private": true,
+  "description": "Next.js application template",
+  "keywords": [
+    "nextjs",
+    "react",
+    "tailwindcss",
+    "template"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "scripts": {
+    "build": "next build < /dev/null",
+    "dev": "node scripts/run-dev-server.js",
+    "start": "next start",
+    "typecheck:pre": "next typegen"
+  },
+  "dependencies": {
+    "next": "16.4.5",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "16.4.5",
+    "@tailwindcss/postcss": "4.3.4",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/jest-dom": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "@vitest/eslint-plugin": "1.6.28",
+    "@williamthorsen/eslint-config-typescript": "catalog:",
+    "@williamthorsen/nmr": "catalog:",
+    "dotenv": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-jest-dom": "5.10.1",
+    "eslint-plugin-react": "catalog:",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-testing-library": "7.16.2",
+    "jsdom": "catalog:",
+    "postcss": "8.5.32",
+    "tailwindcss": "4.3.4",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

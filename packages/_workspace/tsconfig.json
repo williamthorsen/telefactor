@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    // The template test imports `node:` builtins, and this package depends on nothing that would
+    // pull @types/node into the program on its own. Naming it here is what puts it in scope.
+    // Types delivered by module resolution, such as @types/react, are unaffected by this list.
+    "types": ["node"],
+  },
+  "include": ["src/", "*.ts"],
+}

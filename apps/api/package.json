@@ -1,0 +1,29 @@
+{
+  "name": "node-monorepo-api-template",
+  "version": "1.3.0",
+  "private": true,
+  "description": "API package template",
+  "keywords": [
+    "api",
+    "node",
+    "template",
+    "typescript"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "scripts": {
+    "build": ":",
+    "start": "node src/index.ts"
+  },
+  "devDependencies": {
+    "@williamthorsen/nmr": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

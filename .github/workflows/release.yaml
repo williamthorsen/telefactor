@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Release targets to release, with their dependents (comma-separated, leave empty for all)'
+        required: false
+        type: string
+      bump:
+        description: 'Version bump type (auto detects it from commits)'
+        required: false
+        type: choice
+        default: auto
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      force:
+        description: 'Force a release even when there are not any commits, or any bump-worthy commits, since the last release (defaults to patch; combine with --bump for a different level)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  release:
+    uses: williamthorsen/node-monorepo-tools/.github/workflows/release.reusable.yaml@workflow/release-v1
+    with:
+      only: ${{ inputs.only }}
+      bump: ${{ inputs.bump != 'auto' && inputs.bump || '' }}
+      force: ${{ inputs.force }}

@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "kits": [
+    {
+      "checklistChecks": [
+        {
+          "checklist": "cdk-tooling",
+          "checks": [
+            "AWS SAM CLI (sam) is installed"
+          ]
+        }
+      ],
+      "checklists": [
+        "cdk-tooling"
+      ],
+      "esbuildVersion": "0.28.2",
+      "inputs": [
+        {
+          "hash": "d9e6025b",
+          "kind": "module",
+          "path": "kits/cdk.ts"
+        }
+      ],
+      "name": "cdk",
+      "path": "kits/cdk.js",
+      "readyupVersion": "0.44.0",
+      "source": "kits/cdk.ts",
+      "sourceHash": "d9e6025b",
+      "targetHash": "e34d8a15"
+    },
+    {
+      "checklistChecks": [
+        {
+          "checklist": "code-style",
+          "checks": [
+            ".editorconfig exists",
+            ".editorconfig matches template",
+            "exact-version saving is enforced",
+            "lefthook.yml exists",
+            "lefthook.yml formats staged files",
+            "the pre-commit formatter is nmr fmt"
+          ]
+        },
+        {
+          "checklist": "repo-setup",
+          "checks": [
+            ".envrc exists",
+            ".config/wt.toml exists",
+            ".config/wt.toml copies gitignored files into a new worktree",
+            ".config/wt.toml runs its creation steps as blocking pre-start hooks",
+            ".worktreeinclude allowlists the files copied into a new worktree",
+            "package.json has \"type\": \"module\"",
+            "packageManager pins pnpm 11 or later",
+            "minimumReleaseAgeExclude carves out first-party packages",
+            ".tool-versions declares exactly one nodejs version",
+            "Node in .tool-versions is 24 or newer"
+          ]
+        },
+        {
+          "checklist": "agent-tooling",
+          "checks": [
+            "no .agents/PROJECT.md remains",
+            ".agents/preferences.yaml has project.slug and project.ticket_ref_prefix"
+          ]
+        },
+        {
+          "checklist": "testing",
+          "checks": [
+            "version-alignment guard is removed",
+            "no superseded test files exist"
+          ]
+        },
+        {
+          "checklist": "dependencies",
+          "checks": [
+            ".github/dependabot.yml exists",
+            ".github/dependabot.yml matches template",
+            "@williamthorsen/nmr 0.35.0+ is installed",
+            "@williamthorsen/release-kit 10.5.0+ is installed",
+            "@williamthorsen/eslint-config-typescript 8.7.0+ is installed",
+            "codeassembly 0.7.0+ is installed",
+            "typescript 6.0.3+ is installed",
+            "readyup 0.40.0+ is installed",
+            "readyup config names every installed kit-publishing package"
+          ]
+        }
+      ],
+      "checklists": [
+        "code-style",
+        "repo-setup",
+        "agent-tooling",
+        "testing",
+        "dependencies"
+      ],
+      "esbuildVersion": "0.28.2",
+      "inputs": [
+        {
+          "hash": "47411582",
+          "kind": "module",
+          "path": "kits/default.ts"
+        },
+        {
+          "hash": "a3c805c3",
+          "kind": "module",
+          "path": "kits/lib/helpers.ts"
+        }
+      ],
+      "name": "default",
+      "path": "kits/default.js",
+      "readyupVersion": "0.44.0",
+      "source": "kits/default.ts",
+      "sourceHash": "47411582",
+      "targetHash": "dc6bb64b"
+    }
+  ]
+}

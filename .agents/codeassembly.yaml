@@ -1,0 +1,3 @@
+packages:
+  use:
+    - '@williamthorsen/nmr'

@@ -1,0 +1,20 @@
+// TSConfig for monorepo root. Packages have their own tsconfig.json files that extend this one.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@williamthorsen/tsconfig/tsconfig.base.json",
+  "compilerOptions": {
+    // The chrome and _workspace template suites import their package.json.
+    "resolveJsonModule": true,
+    // The base enables this for packages that emit with `tsc`, which rejects a `.ts` extension on a non-relative
+    // specifier such as `#src/…`. No package here emits with `tsc`, and `nmr-compile` enables it for its own emit.
+    "rewriteRelativeImportExtensions": false,
+  },
+  "include": [
+    ".config/**/*.ts",
+    ".readyup/**/*.ts",
+    "__tests__/",
+    "scripts/",
+    // Root-level config files (vite/vitest); the project service resolves each linted `.ts` file's owning config here.
+    "*.ts",
+  ],
+}

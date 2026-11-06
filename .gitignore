@@ -1,0 +1,56 @@
+# Agents
+.agents/*.branch-manifest.json
+
+# Editor directories and files
+.idea/
+.iml
+*.ntvs*
+*.njsproj
+*.sln
+*.suo
+*.sw?
+.vscode/*
+!.vscode/extensions.json
+
+# Credentials
+*.pem
+
+# Dependencies
+node_modules/
+.pnpm-debug.log*
+
+# Distribution directory
+.dist/
+dist/
+dist-ssr/
+out/
+
+# Framework
+.aws-sam/
+.cdk.out/
+.next/
+next-env.d.ts
+.vercel
+
+# Local-only
+local/
+tmp/
+*.local
+*.local.*
+*.private.env.json
+*.tmp
+
+# Logs
+logs
+*.log
+
+# OS files
+.DS_Store
+
+# Testing
+.playwright-mcp/
+coverage/
+.vitest-result.json
+
+# TypeScript
+*.tsbuildinfo

@@ -1,0 +1,6 @@
+# Configuration: https://lefthook.dev/configuration/
+pre-commit:
+  commands:
+    format:
+      run: pnpm exec nmr fmt {staged_files}
+      stage_fixed: true

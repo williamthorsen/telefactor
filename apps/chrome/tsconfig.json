@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    // `lib` replaces rather than extends, so the ES year is repeated alongside the DOM libs.
+    "lib": ["DOM", "DOM.Iterable", "ES2025"],
+    "types": ["@types/chrome"],
+  },
+  "include": [
+    "src/", //
+    "*.ts",
+  ],
+}

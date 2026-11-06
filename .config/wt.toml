@@ -1,0 +1,11 @@
+# Worktrunk configuration file
+# See https://github.com/max-sixty/worktrunk
+# The pipeline form orders the steps: `copy` precedes `deps` because pnpm's postinstall runs
+# `codeassembly sync`, which writes CLAUDE.local.md, and the copy skips a destination file that
+# already exists. Requires worktrunk 0.62.0 for --require-include.
+[[pre-start]]
+copy = "wt step copy-ignored --require-include"
+
+[[pre-start]]
+direnv = "direnv allow"
+deps = "pnpm install"

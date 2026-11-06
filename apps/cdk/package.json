@@ -1,0 +1,47 @@
+{
+  "name": "node-monorepo-cdk-template",
+  "version": "1.3.0",
+  "private": true,
+  "description": "AWS CDK package template",
+  "keywords": [
+    "aws",
+    "cdk",
+    "infrastructure",
+    "template"
+  ],
+  "license": "UNLICENSED",
+  "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
+  "type": "module",
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "scripts": {
+    "build": "pnpm run build:cdk",
+    "build:cdk": "scripts/synth.sh development",
+    "build:sam": "scripts/build-sam.sh",
+    "cdk": "cdk",
+    "clean": "rm -rf .cdk.out/*",
+    "deploy": "scripts/deploy.sh",
+    "destroy": "scripts/destroy.sh",
+    "dev": "pnpm run build && pnpm run build:sam && pnpm start",
+    "start": "sam local start-api --port 3001 --debug --profile skypilot --warm-containers EAGER",
+    "synth": "scripts/synth.sh"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "3.1161.0",
+    "@aws-sdk/client-s3": "3.1161.0",
+    "@aws-sdk/client-ssm": "3.1161.0",
+    "aws-cdk-lib": "2.275.0",
+    "constructs": "10.8.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.164",
+    "aws-cdk": "2.1147.0",
+    "aws-sdk-client-mock": "4.1.0",
+    "eslint": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

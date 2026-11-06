@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": true,
+    "jsx": "preserve",
+    // `lib` replaces rather than extends, so the ES year is repeated alongside the DOM libs.
+    "lib": [
+      "DOM", //
+      "DOM.Iterable",
+      "ES2025",
+    ],
+    // if this is set to anything other than `esnext`, Next.js will replace it with `esnext`
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "plugins": [
+      {
+        "name": "next",
+      },
+    ],
+  },
+  "include": [
+    "*.ts", //
+    "*.tsx",
+    "next-env.d.ts",
+    "scripts/",
+    "src/",
+    ".next/types/**/*.ts",
+  ],
+  "exclude": ["node_modules/"],
+}

@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Code quality checks
+
+# Note: This workflow will be automatically skipped if the commit message includes
+# any of the following strings: [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+
+on:
+  push:
+    branches:
+      - main
+      - next
+
+  pull_request:
+    branches:
+      - main
+      - next
+
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-quality:
+    uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
+    # The legs together run every constituent of `nmr ci`, plus `shellcheck`. Build runs in a leg of
+    # its own: no other leg reads its output (nextjs's typecheck:pre hook runs `next typegen` for the
+    # route types), and it is the longest check.
+    with:
+      check-commands: >-
+        [
+          { "name": "build", "command": "pnpm exec nmr build" },
+          { "name": "lint", "command": "pnpm exec nmr lint:strict" },
+          { "name": "shell", "command": "pnpm exec nmr lint:shell" },
+          { "name": "static", "command": "pnpm exec nmr typecheck && pnpm exec nmr fmt:check" },
+          { "name": "test", "command": "pnpm exec nmr test" },
+          { "name": "workflows", "command": "pnpm exec nmr lint:workflows" }
+        ]
+      shellcheck-version: '0.11.0'

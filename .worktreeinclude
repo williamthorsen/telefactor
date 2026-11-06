@@ -1,0 +1,9 @@
+# Gitignored files copied into a new worktree by `wt step copy-ignored`, which
+# `.config/wt.toml` runs under [pre-start]. A file is copied only when it is
+# both gitignored and listed here, so this allowlist is what keeps node_modules/
+# and build output out.
+.agents/codeassembly.local.yaml
+.claude/settings.local.json
+.env.local
+AGENTS.local.md
+CLAUDE.local.md
