@@ -28,6 +28,10 @@
       "types": "./dist/esm/client.d.ts",
       "default": "./dist/esm/client.js"
     },
+    "./contract": {
+      "types": "./dist/esm/contract.d.ts",
+      "default": "./dist/esm/contract.js"
+    },
     "./server": {
       "types": "./dist/esm/server.d.ts",
       "default": "./dist/esm/server.js"
