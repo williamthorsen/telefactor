@@ -1,9 +1,12 @@
-/** Public entry point `@williamthorsen/telefactor/client`: the route types and a fetch client for them. */
+/** Public entry point `@williamthorsen/telefactor/client`: the route types, and fetch clients for the job and contract routes. */
 export {
-  createTelefactorClient,
-  type TelefactorClient,
-  TelefactorRequestError,
-} from './client/create-telefactor-client.ts';
+  type ContractClient,
+  type ContractSnapshot,
+  createContractClient,
+  RECONNECT_DELAY_MS,
+} from './client/create-contract-client.ts';
+export { createTelefactorClient, type TelefactorClient } from './client/create-telefactor-client.ts';
+export { TelefactorRequestError } from './client/telefactor-request-error.ts';
 export {
   type HarnessList,
   harnessListSchema,

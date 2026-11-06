@@ -1,4 +1,17 @@
 /** Public entry point `@williamthorsen/telefactor/server`: the harness registry, the job runner, and the routes. */
+export {
+  createStateStore,
+  describeRefusal,
+  type RunOutcome,
+  type StateSnapshot,
+  type StateStore,
+} from './contract/create-state-store.ts';
+export {
+  type ActionHandler,
+  type ActionHandlers,
+  type ContractImplementation,
+  implementContract,
+} from './contract/implement-contract.ts';
 export { BUILT_IN_DEFAULT_HARNESS, BUILT_IN_HARNESSES } from './harness/built-in-harnesses.ts';
 export {
   ENVIRONMENT_HARNESS_NAME,

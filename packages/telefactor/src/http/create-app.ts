@@ -1,8 +1,17 @@
+import { createMcpHandler } from '@modelcontextprotocol/server';
 import { type Context, type Env, Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 
+import {
+  describeRefusal,
+  type RunOutcome,
+  type StateSnapshot,
+  type StateStore,
+} from '#src/contract/create-state-store.ts';
 import type { HarnessSettingsResult } from '#src/harness/read-settings.ts';
 import { findHarness } from '#src/harness/settings-schema.ts';
 import type { Jobs } from '#src/jobs/create-jobs.ts';
+import { createMcpServer } from '#src/mcp/create-mcp-server.ts';
 import { formatIssuePath } from '#src/schemas/problem.ts';
 
 import { type HarnessList, type HarnessTestResult, startJobRequestSchema } from './route-schemas.ts';
@@ -17,14 +26,21 @@ export interface TelefactorAppOptions<E extends Env> {
   runTest: (argv: readonly string[], signal: AbortSignal) => Promise<HarnessTestResult>;
   /** Decides whether a request may reach the routes; a rejected request gets `403`. */
   isAllowed: (context: Context<E>) => boolean;
+  /** The session state that `/state` and `/actions` serve; without one, those paths do not exist. */
+  store?: StateStore;
 }
 
-/** Creates the HTTP app that lists and tests harnesses under `/harnesses` and starts, reads, and cancels `/jobs`. */
+/**
+ * Creates the HTTP app that lists and tests harnesses under `/harnesses` and starts, reads, and cancels `/jobs`. With a
+ * store, it also serves the session state at `/state`, pushes each change from `/state/events`, runs actions at
+ * `/actions/:name`, and serves them to an agent as MCP tools at `/mcp`.
+ */
 export function createTelefactorApp<E extends Env>({
   jobs,
   readSettings,
   runTest,
   isAllowed,
+  store,
 }: TelefactorAppOptions<E>): Hono<E> {
   const app = new Hono<E>();
 
@@ -114,6 +130,42 @@ export function createTelefactorApp<E extends Env>({
       : context.json({ error: 'The job has already finished.' }, 409);
   });
 
+  if (store !== undefined) {
+    app.get('/state', (context) => context.json(store.read()));
+
+    app.get('/state/events', (context) =>
+      streamSSE(context, async (stream) => {
+        // Read and subscribe in the same turn, so that no commit falls between the first snapshot and the next.
+        const initial = store.read();
+        const unsubscribe = store.subscribe((snapshot) => void writeSnapshot(snapshot));
+        async function writeSnapshot(snapshot: StateSnapshot): Promise<void> {
+          await stream.writeSSE({ event: 'state', data: JSON.stringify(snapshot) });
+        }
+        await writeSnapshot(initial);
+        await new Promise<void>((resolve) => {
+          stream.onAbort(resolve);
+        });
+        unsubscribe();
+      }),
+    );
+
+    app.post('/actions/:name', async (context) => {
+      if (!isJsonMediaType(context.req.header('content-type'))) {
+        return context.json({ error: 'The body must be sent as application/json.' }, 415);
+      }
+      let body: unknown;
+      try {
+        body = await context.req.json();
+      } catch {
+        return context.json({ problems: [{ path: '', message: 'The body is not valid JSON.' }] }, 400);
+      }
+      return respondToOutcome(context, await store.run(context.req.param('name'), body));
+    });
+
+    const mcpHandler = createMcpHandler(() => createMcpServer(store.contract, store));
+    app.all('/mcp', (context) => mcpHandler.fetch(context.req.raw));
+  }
+
   app.notFound((context) => context.json({ error: 'The route does not exist.' }, 404));
 
   return app;
@@ -123,5 +175,20 @@ export function createTelefactorApp<E extends Env>({
 /** Reports whether a `Content-Type` header names `application/json`, with or without parameters. */
 function isJsonMediaType(contentType: string | undefined): boolean {
   return contentType?.split(';', 1)[0]?.trim().toLowerCase() === 'application/json';
+}
+
+/** Maps an action's outcome to its response: the snapshot, or the refusal with the status that names its cause. */
+function respondToOutcome<E extends Env>(context: Context<E>, outcome: RunOutcome): Response {
+  if (outcome.ok) return context.json(outcome.snapshot);
+  switch (outcome.reason) {
+    case 'unknown-action':
+      return context.json({ error: outcome.message }, 404);
+    case 'invalid-input':
+      return context.json({ problems: outcome.problems }, 400);
+    case 'handler-failed':
+      return context.json({ error: describeRefusal(outcome) }, 422);
+    case 'invalid-state':
+      return context.json({ problems: outcome.problems }, 500);
+  }
 }
 // endregion | Helpers

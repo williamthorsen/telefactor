@@ -48,3 +48,10 @@ export const harnessTestResultSchema = z.object({
 });
 
 export type HarnessTestResult = z.infer<typeof harnessTestResultSchema>;
+
+/** The body of `GET /state`, of each `/state/events` event, and of a `200` from `POST /actions/:name`. */
+export function stateSnapshotSchema<S extends z.ZodType>(
+  stateSchema: S,
+): z.ZodObject<{ version: z.ZodNumber; state: S }> {
+  return z.object({ version: z.number().int().nonnegative(), state: stateSchema });
+}

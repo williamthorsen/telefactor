@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createTelefactorClient, TelefactorRequestError } from '../create-telefactor-client.ts';
+import { createTelefactorClient } from '../create-telefactor-client.ts';
+import { TelefactorRequestError } from '../telefactor-request-error.ts';
 
 const JOB = { id: 'a/b', harness: 'codex', status: 'running' };
 

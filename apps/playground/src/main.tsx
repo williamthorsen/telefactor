@@ -1,8 +1,9 @@
-import { createTelefactorClient } from '@williamthorsen/telefactor/client';
+import { createContractClient, createTelefactorClient } from '@williamthorsen/telefactor/client';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import { App } from './App.tsx';
+import { notesContract } from './notes/notes-contract.ts';
 
 import './styles.css';
 
@@ -13,6 +14,6 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App client={createTelefactorClient()} />
+    <App client={createTelefactorClient()} notesClient={createContractClient(notesContract)} />
   </React.StrictMode>,
 );
