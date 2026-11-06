@@ -103,12 +103,13 @@ button {
   background: var(--color-accent);
 }
 
-button:enabled,
+/* A button that is busy with its own request takes `aria-disabled`, so that it keeps keyboard focus. */
+button:enabled:not([aria-disabled='true']),
 select:enabled {
   cursor: pointer;
 }
 
-button:enabled:hover {
+button:enabled:not([aria-disabled='true']):hover {
   border-color: var(--color-accent-hover);
   background: var(--color-accent-hover);
 }
@@ -118,7 +119,8 @@ textarea:enabled:hover {
   border-color: var(--color-text);
 }
 
-button:disabled {
+button:disabled,
+button[aria-disabled='true'] {
   cursor: default;
   opacity: 0.5;
 }

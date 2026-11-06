@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { TelefactorRequestError } from '@williamthorsen/telefactor/client';
+import { type HarnessTestResult, TelefactorRequestError } from '@williamthorsen/telefactor/client';
 import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -65,6 +65,23 @@ describe(HarnessPanel, () => {
     expect(await screen.findByText('Test failed: exit code 1, in 12 ms.')).toBeInTheDocument();
     expect(screen.getByText('not signed in')).toBeInTheDocument();
     expect(testHarness).toHaveBeenCalledWith('claude-code');
+  });
+
+  it('disables the picker and keeps the test button focusable while a test runs', async () => {
+    const pendingTest = Promise.withResolvers<HarnessTestResult>();
+    const client = createFakeClient({ testHarness: () => pendingTest.promise });
+    renderPanel(client);
+
+    const testButton = await screen.findByRole('button', { name: 'Test' });
+    testButton.focus();
+    fireEvent.click(testButton);
+
+    expect(screen.getByLabelText('Harness')).toBeDisabled();
+    expect(testButton).toHaveFocus();
+    expect(testButton).toHaveAttribute('aria-disabled', 'true');
+    pendingTest.resolve({ ok: true, durationMs: 5, exit: 'exit code 0', output: '' });
+    await screen.findByText('Test passed: exit code 0, in 5 ms.');
+    expect(screen.getByLabelText('Harness')).toBeEnabled();
   });
 
   it('clears the test result when the selection changes', async () => {

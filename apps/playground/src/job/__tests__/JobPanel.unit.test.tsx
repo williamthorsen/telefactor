@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { type TelefactorClient, TelefactorRequestError } from '@williamthorsen/telefactor/client';
+import { type Job, type TelefactorClient, TelefactorRequestError } from '@williamthorsen/telefactor/client';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildJob, createFakeClient } from '#src/test-utils/create-fake-client.ts';
@@ -36,7 +36,7 @@ describe(JobPanel, () => {
     run('Summarize README.md');
 
     expect(await screen.findByText('Running on claude-code…')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Run' })).toHaveAttribute('aria-disabled', 'true');
     expect(await screen.findByText('The README describes telefactor.')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Done on claude-code.');
     expect(startJob).toHaveBeenCalledWith({ prompt: 'Summarize README.md', harness: 'claude-code' });
@@ -72,6 +72,70 @@ describe(JobPanel, () => {
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
   });
 
+  it('keeps Run focusable and ignores a second press while the job starts', async () => {
+    const pendingStart = Promise.withResolvers<Job>();
+    const startJob = vi.fn(() => pendingStart.promise);
+    renderPanel(createFakeClient({ getJob: () => Promise.resolve(buildJob()), startJob }), 20);
+
+    typePrompt('Summarize README.md');
+    const runButton = screen.getByRole('button', { name: 'Run' });
+    runButton.focus();
+    fireEvent.click(runButton);
+    fireEvent.click(runButton);
+
+    expect(runButton).toHaveFocus();
+    expect(runButton).toHaveAttribute('aria-disabled', 'true');
+    expect(startJob).toHaveBeenCalledTimes(1);
+    pendingStart.resolve(buildJob());
+    expect(await screen.findByText('Running on claude-code…')).toBeInTheDocument();
+  });
+
+  it('moves focus from Cancel to Run once the cancel resolves', async () => {
+    const client = createFakeClient({
+      cancelJob: () => Promise.resolve(buildJob({ status: 'cancelled' })),
+      getJob: () => Promise.resolve(buildJob()),
+      startJob: () => Promise.resolve(buildJob()),
+    });
+    renderPanel(client, 20);
+
+    run('Summarize README.md');
+    const cancel = await screen.findByRole('button', { name: 'Cancel' });
+    cancel.focus();
+    fireEvent.click(cancel);
+
+    await screen.findByText('Cancelled on claude-code.');
+    expect(screen.getByRole('button', { name: 'Run' })).toHaveFocus();
+  });
+
+  it('moves focus from Cancel to Run when the job finishes on its own', async () => {
+    const getJob = vi
+      .fn<TelefactorClient['getJob']>()
+      .mockResolvedValueOnce(buildJob())
+      .mockResolvedValueOnce(buildJob({ status: 'done', result: { output: 'Finished.' } }));
+    renderPanel(createFakeClient({ getJob, startJob: () => Promise.resolve(buildJob()) }), 20);
+
+    run('Summarize README.md');
+    (await screen.findByRole('button', { name: 'Cancel' })).focus();
+
+    await screen.findByText('Finished.');
+    expect(screen.getByRole('button', { name: 'Run' })).toHaveFocus();
+  });
+
+  it('leaves focus alone when Cancel did not have it', async () => {
+    const getJob = vi
+      .fn<TelefactorClient['getJob']>()
+      .mockResolvedValueOnce(buildJob())
+      .mockResolvedValueOnce(buildJob({ status: 'done', result: { output: 'Finished.' } }));
+    renderPanel(createFakeClient({ getJob, startJob: () => Promise.resolve(buildJob()) }), 20);
+
+    run('Summarize README.md');
+    await screen.findByRole('button', { name: 'Cancel' });
+    screen.getByLabelText('Prompt').focus();
+
+    await screen.findByText('Finished.');
+    expect(screen.getByLabelText('Prompt')).toHaveFocus();
+  });
+
   it('stops polling and shows the error when a poll fails', async () => {
     const getJob = vi.fn<TelefactorClient['getJob']>(() =>
       Promise.reject(new TelefactorRequestError(404, 'Job "job-1" not found.')),
@@ -83,7 +147,7 @@ describe(JobPanel, () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Job "job-1" not found.');
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(getJob).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Run' })).toHaveAttribute('aria-disabled', 'false');
   });
 
   it("shows a rejected start's problems", async () => {

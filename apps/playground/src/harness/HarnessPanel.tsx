@@ -53,6 +53,7 @@ export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelP
   }
 
   async function testHarness(name: string): Promise<void> {
+    if (isTesting) return;
     setIsTesting(true);
     setTestResult(undefined);
     setTestError(undefined);
@@ -69,7 +70,12 @@ export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelP
     <div className="stack">
       <div className="row">
         <label htmlFor="harness">Harness</label>
-        <select id="harness" value={harness ?? ''} onChange={(event) => selectHarness(event.target.value)}>
+        <select
+          id="harness"
+          disabled={isTesting}
+          value={harness ?? ''}
+          onChange={(event) => selectHarness(event.target.value)}
+        >
           {list.harnesses.map((candidate) => (
             <option key={candidate.name} value={candidate.name}>
               {candidate.label}
@@ -78,7 +84,8 @@ export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelP
         </select>
         <button
           type="button"
-          disabled={selected?.testable !== true || isTesting}
+          disabled={selected?.testable !== true}
+          aria-disabled={isTesting}
           onClick={() => selected && void testHarness(selected.name)}
         >
           Test

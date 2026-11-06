@@ -1,5 +1,5 @@
 import type { Job, TelefactorClient } from '@williamthorsen/telefactor/client';
-import { type ReactElement, type SyntheticEvent, useEffect, useState } from 'react';
+import { type ReactElement, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 
 import { RequestError } from '#src/requests/RequestError.tsx';
 
@@ -13,6 +13,18 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   const [error, setError] = useState<unknown>();
   const [isStarting, setIsStarting] = useState(false);
   const isRunning = job?.status === 'running' && error === undefined;
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const runButton = useRef<HTMLButtonElement>(null);
+  const promptField = useRef<HTMLTextAreaElement>(null);
+  const shouldRestoreFocus = useRef(false);
+
+  // Cancel unmounts when the job stops running; keep keyboard focus in the form.
+  useEffect(() => {
+    if (isRunning || !shouldRestoreFocus.current) return;
+    shouldRestoreFocus.current = false;
+    const target = runButton.current?.disabled === false ? runButton.current : promptField.current;
+    target?.focus();
+  }, [isRunning]);
 
   useEffect(() => {
     if (job?.status !== 'running' || error !== undefined) return;
@@ -21,9 +33,13 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
     async function poll(id: string): Promise<void> {
       try {
         const polled = await client.getJob(id);
-        if (isCurrent) setJob(polled);
+        if (!isCurrent) return;
+        if (polled.status !== 'running') noteCancelFocus();
+        setJob(polled);
       } catch (pollError: unknown) {
-        if (isCurrent) setError(pollError);
+        if (!isCurrent) return;
+        noteCancelFocus();
+        setError(pollError);
       }
     }
     const timer = setTimeout(() => void poll(job.id), pollIntervalMs);
@@ -33,8 +49,14 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
     };
   }, [client, error, job, pollIntervalMs]);
 
+  /** Records whether Cancel has focus, ahead of a state change that unmounts it. */
+  function noteCancelFocus(): void {
+    shouldRestoreFocus.current = document.activeElement === cancelButton.current;
+  }
+
   async function startJob(event: SyntheticEvent): Promise<void> {
     event.preventDefault();
+    if (isRunning || isStarting) return;
     setIsStarting(true);
     setError(undefined);
     try {
@@ -48,8 +70,11 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
 
   async function cancelJob(id: string): Promise<void> {
     try {
-      setJob(await client.cancelJob(id));
+      const cancelled = await client.cancelJob(id);
+      noteCancelFocus();
+      setJob(cancelled);
     } catch (cancelError: unknown) {
+      noteCancelFocus();
       setError(cancelError);
     }
   }
@@ -57,13 +82,24 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   return (
     <form className="stack" onSubmit={(event) => void startJob(event)}>
       <label htmlFor="prompt">Prompt</label>
-      <textarea id="prompt" rows={4} value={prompt} onChange={(event) => setPrompt(event.target.value)} />
+      <textarea
+        id="prompt"
+        ref={promptField}
+        rows={4}
+        value={prompt}
+        onChange={(event) => setPrompt(event.target.value)}
+      />
       <div className="row">
-        <button type="submit" disabled={harness === undefined || prompt.trim() === '' || isRunning || isStarting}>
+        <button
+          type="submit"
+          ref={runButton}
+          disabled={harness === undefined || prompt.trim() === ''}
+          aria-disabled={isRunning || isStarting}
+        >
           Run
         </button>
         {isRunning && (
-          <button type="button" onClick={() => void cancelJob(job.id)}>
+          <button type="button" ref={cancelButton} onClick={() => void cancelJob(job.id)}>
             Cancel
           </button>
         )}
