@@ -1,7 +1,7 @@
 import { describeError } from '#src/portable/describe-error.ts';
 import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 
-import { getInputSchema, isActionName } from './define-contract.ts';
+import { type Contract, getInputSchema, isActionName } from './define-contract.ts';
 import type { ContractImplementation } from './implement-contract.ts';
 
 /** The session state with the number of commits that produced it, so that a reader can discard an older snapshot. */
@@ -24,6 +24,7 @@ export type RunOutcome =
 
 /** The session state of one dev server, which the page's routes and the agent's tools both change. */
 export interface StateStore {
+  readonly contract: Contract;
   read(): StateSnapshot;
   /** Runs an action after every call already queued, and commits its result only when the state schema accepts it. */
   run(name: string, rawInput: unknown): Promise<RunOutcome>;
@@ -62,6 +63,7 @@ export function createStateStore({ contract, initialState, handlers }: ContractI
   }
 
   return {
+    contract,
     read: () => snapshot,
     run(name, rawInput) {
       const outcome = runAfter(queue, () => execute(name, rawInput));

@@ -1,3 +1,4 @@
+import { createMcpHandler } from '@modelcontextprotocol/server';
 import { type Context, type Env, Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 
@@ -10,6 +11,7 @@ import {
 import type { HarnessSettingsResult } from '#src/harness/read-settings.ts';
 import { findHarness } from '#src/harness/settings-schema.ts';
 import type { Jobs } from '#src/jobs/create-jobs.ts';
+import { createMcpServer } from '#src/mcp/create-mcp-server.ts';
 import { formatIssuePath } from '#src/schemas/problem.ts';
 
 import { type HarnessList, type HarnessTestResult, startJobRequestSchema } from './route-schemas.ts';
@@ -30,8 +32,8 @@ export interface TelefactorAppOptions<E extends Env> {
 
 /**
  * Creates the HTTP app that lists and tests harnesses under `/harnesses` and starts, reads, and cancels `/jobs`. With a
- * store, it also serves the session state at `/state`, pushes each change from `/state/events`, and runs actions at
- * `/actions/:name`.
+ * store, it also serves the session state at `/state`, pushes each change from `/state/events`, runs actions at
+ * `/actions/:name`, and serves them to an agent as MCP tools at `/mcp`.
  */
 export function createTelefactorApp<E extends Env>({
   jobs,
@@ -159,6 +161,9 @@ export function createTelefactorApp<E extends Env>({
       }
       return respondToOutcome(context, await store.run(context.req.param('name'), body));
     });
+
+    const mcpHandler = createMcpHandler(() => createMcpServer(store.contract, store));
+    app.all('/mcp', (context) => mcpHandler.fetch(context.req.raw));
   }
 
   app.notFound((context) => context.json({ error: 'The route does not exist.' }, 404));

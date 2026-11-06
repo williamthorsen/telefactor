@@ -46,10 +46,12 @@
   ],
   "dependencies": {
     "@hono/node-server": "2.1.6",
+    "@modelcontextprotocol/server": "2.4.0",
     "hono": "4.13.16",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
     "@types/node": "catalog:",
     "@williamthorsen/nmr": "catalog:",
     "vite": "catalog:",
