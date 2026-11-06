@@ -6,7 +6,7 @@ import type { Plugin } from 'vite';
 import { readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { runHarnessTest } from '#src/harness/run-harness-test.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
-import { isLoopbackRequest, isSameOriginRequest } from '#src/http/request-guards.ts';
+import { isLoopbackRequest, isSameOriginRequest, readRequestHost } from '#src/http/request-guards.ts';
 import { createHarnessRun } from '#src/jobs/create-harness-run.ts';
 import { createJobs } from '#src/jobs/create-jobs.ts';
 import { createInMemoryJobStore } from '#src/jobs/in-memory-job-store.ts';
@@ -56,7 +56,7 @@ export function telefactor({
         runTest: (argv, signal) => runHarnessTest({ argv, workingDirectory: resolvedWorkingDirectory, signal }),
         isAllowed: (context) =>
           isLoopbackRequest({
-            host: context.req.header('host'),
+            host: readRequestHost(context.req.header('host'), context.env.incoming),
             remoteAddress: context.env.incoming.socket.remoteAddress,
           }) &&
           isSameOriginRequest({

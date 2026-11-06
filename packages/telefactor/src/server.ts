@@ -19,7 +19,7 @@ export {
   MAX_TIMEOUT_MINUTES,
 } from './harness/settings-schema.ts';
 export { createTelefactorApp, type TelefactorAppOptions } from './http/create-app.ts';
-export { isLoopbackRequest, isSameOriginRequest } from './http/request-guards.ts';
+export { isLoopbackRequest, isSameOriginRequest, readRequestHost } from './http/request-guards.ts';
 export { createHarnessRun, describeRunFailure, MAX_OUTPUT_BYTES } from './jobs/create-harness-run.ts';
 export {
   type CancelOutcome,

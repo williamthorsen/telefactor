@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isLoopbackRequest, isSameOriginRequest } from '../request-guards.ts';
+import { isLoopbackRequest, isSameOriginRequest, readRequestHost } from '../request-guards.ts';
 
 describe(isLoopbackRequest, () => {
   it.each([
@@ -41,5 +41,19 @@ describe(isSameOriginRequest, () => {
     ['another Origin', { secFetchSite: undefined, origin: 'http://localhost:3000' }],
   ])('rejects %s', (_case, headers) => {
     expect(isSameOriginRequest({ ...headers, url })).toBe(false);
+  });
+});
+
+describe(readRequestHost, () => {
+  it('returns the Host header when present', () => {
+    expect(readRequestHost('localhost:5173', { authority: 'other:1' })).toBe('localhost:5173');
+  });
+
+  it('falls back to the authority of an HTTP/2 request, which sends no Host header', () => {
+    expect(readRequestHost(undefined, { authority: '127.0.0.1:5173' })).toBe('127.0.0.1:5173');
+  });
+
+  it('returns undefined when neither is present', () => {
+    expect(readRequestHost(undefined, {})).toBeUndefined();
   });
 });

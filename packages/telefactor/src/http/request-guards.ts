@@ -37,3 +37,9 @@ export function isSameOriginRequest({
   if (origin !== undefined) return origin === new URL(url).origin;
   return true;
 }
+
+/** Returns the request's `Host` header, else the `:authority` of an HTTP/2 request, which does not send `Host`. */
+export function readRequestHost(hostHeader: string | undefined, incoming: object): string | undefined {
+  if (hostHeader !== undefined) return hostHeader;
+  return 'authority' in incoming && typeof incoming.authority === 'string' ? incoming.authority : undefined;
+}
