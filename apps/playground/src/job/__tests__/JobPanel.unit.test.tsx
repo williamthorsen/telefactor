@@ -108,29 +108,28 @@ describe(JobPanel, () => {
   });
 
   it('moves focus from Cancel to Run when the job finishes on its own', async () => {
-    const getJob = vi
-      .fn<TelefactorClient['getJob']>()
-      .mockResolvedValueOnce(buildJob())
-      .mockResolvedValueOnce(buildJob({ status: 'done', result: { output: 'Finished.' } }));
-    renderPanel(createFakeClient({ getJob, startJob: () => Promise.resolve(buildJob()) }), 20);
+    // Hold the poll until focus is placed, so that the job cannot finish first.
+    const finished = Promise.withResolvers<Job>();
+    const getJob = vi.fn<TelefactorClient['getJob']>(() => finished.promise);
+    renderPanel(createFakeClient({ getJob, startJob: () => Promise.resolve(buildJob()) }));
 
     run('Summarize README.md');
     (await screen.findByRole('button', { name: 'Cancel' })).focus();
+    finished.resolve(buildJob({ status: 'done', result: { output: 'Finished.' } }));
 
     await screen.findByText('Finished.');
     expect(screen.getByRole('button', { name: 'Run' })).toHaveFocus();
   });
 
   it('leaves focus alone when Cancel did not have it', async () => {
-    const getJob = vi
-      .fn<TelefactorClient['getJob']>()
-      .mockResolvedValueOnce(buildJob())
-      .mockResolvedValueOnce(buildJob({ status: 'done', result: { output: 'Finished.' } }));
-    renderPanel(createFakeClient({ getJob, startJob: () => Promise.resolve(buildJob()) }), 20);
+    const finished = Promise.withResolvers<Job>();
+    const getJob = vi.fn<TelefactorClient['getJob']>(() => finished.promise);
+    renderPanel(createFakeClient({ getJob, startJob: () => Promise.resolve(buildJob()) }));
 
     run('Summarize README.md');
     await screen.findByRole('button', { name: 'Cancel' });
     screen.getByLabelText('Prompt').focus();
+    finished.resolve(buildJob({ status: 'done', result: { output: 'Finished.' } }));
 
     await screen.findByText('Finished.');
     expect(screen.getByLabelText('Prompt')).toHaveFocus();
