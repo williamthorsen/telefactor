@@ -3,6 +3,8 @@ import path from 'node:path';
 import { getRequestListener, type Http2Bindings, type HttpBindings } from '@hono/node-server';
 import type { Plugin } from 'vite';
 
+import { createStateStore } from '#src/contract/create-state-store.ts';
+import type { ContractImplementation } from '#src/contract/implement-contract.ts';
 import { readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { runHarnessTest } from '#src/harness/run-harness-test.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
@@ -22,18 +24,22 @@ export interface TelefactorPluginOptions {
   basePath?: string;
   /** The config file, resolved against the Vite root; defaults to `telefactor.config.json`. */
   configPath?: string;
+  /** The contract whose state and actions the page's routes and the MCP endpoint serve, from `implementContract`. */
+  contract?: ContractImplementation;
   /** The directory in which harnesses run, resolved against the Vite root; defaults to the root. */
   workingDirectory?: string;
 }
 
 /**
- * Creates the Vite plugin that serves the harness and job routes on the dev server. It stops the server on a malformed
- * `TELEFACTOR_HARNESS_COMMAND`, re-reads the config file on each request that needs it, and cancels running jobs when
- * the server closes.
+ * Creates the Vite plugin that serves the harness and job routes on the dev server, and with a contract, its state,
+ * actions, and MCP endpoint. It stops the server on a malformed `TELEFACTOR_HARNESS_COMMAND`, re-reads the config file
+ * on each request that needs it, logs the MCP endpoint's URL once the server listens, and cancels running jobs when the
+ * server closes.
  */
 export function telefactor({
   basePath = DEFAULT_BASE_PATH,
   configPath = DEFAULT_CONFIG_FILE,
+  contract,
   workingDirectory = '.',
 }: TelefactorPluginOptions = {}): Plugin {
   return {
@@ -52,6 +58,7 @@ export function telefactor({
       });
       const app = createTelefactorApp<{ Bindings: Http2Bindings | HttpBindings }>({
         jobs,
+        ...(contract !== undefined && { store: createStateStore(contract) }),
         readSettings: () => readHarnessSettings({ env: process.env, configPath: resolvedConfigPath }),
         runTest: (argv, signal) => runHarnessTest({ argv, workingDirectory: resolvedWorkingDirectory, signal }),
         isAllowed: (context) =>
@@ -70,6 +77,13 @@ export function telefactor({
       server.middlewares.use(basePath, (request, response) => {
         void listener(request, response);
       });
+      if (contract !== undefined) {
+        server.httpServer?.once('listening', () => {
+          const address = server.httpServer?.address();
+          if (typeof address !== 'object' || address === null) return;
+          server.config.logger.info(`telefactor MCP endpoint: http://localhost:${address.port}${basePath}/mcp`);
+        });
+      }
       server.httpServer?.once('close', () => {
         void jobs.cancelAll();
       });
