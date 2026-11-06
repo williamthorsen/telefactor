@@ -1,21 +1,20 @@
 {
-  "name": "templates.node-monorepo",
-  "version": "1.3.0",
+  "name": "telefactor",
+  "version": "0.0.0",
   "private": true,
-  "description": "Pnpm Node Monorepo",
+  "description": "Embed your own agent harness in a web app",
   "keywords": [
     "monorepo",
     "pnpm",
-    "template",
     "typescript"
   ],
-  "homepage": "https://github.com/williamthorsen/templates.node-monorepo#readme",
+  "homepage": "https://github.com/williamthorsen/telefactor#readme",
   "bugs": {
-    "url": "https://github.com/williamthorsen/templates.node-monorepo/issues"
+    "url": "https://github.com/williamthorsen/telefactor/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/williamthorsen/templates.node-monorepo.git"
+    "url": "git+https://github.com/williamthorsen/telefactor.git"
   },
   "license": "UNLICENSED",
   "author": "William Thorsen <william@thorsen.dev> (https://github.com/williamthorsen)",
@@ -25,12 +24,12 @@
     "prepare": "if [ -e .git ]; then lefthook check-install || lefthook install; fi"
   },
   "devDependencies": {
-    "@testing-library/dom": "catalog:",
+    "@testing-library/dom": "10.4.2",
     "@types/node": "24.19.2",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
-    "@vitejs/plugin-react": "catalog:",
+    "@vitejs/plugin-react": "6.2.1",
     "@vitest/coverage-v8": "5.1.0",
-    "@williamthorsen/eslint-config-typescript": "catalog:",
+    "@williamthorsen/eslint-config-typescript": "20.2.0",
     "@williamthorsen/nmr": "catalog:",
     "@williamthorsen/release-kit": "16.1.0",
     "@williamthorsen/repo-tools": "0.2.2",
@@ -38,9 +37,9 @@
     "@williamthorsen/toolbelt.objects": "4.4.0",
     "@williamthorsen/tsconfig": "0.12.1",
     "codeassembly": "0.20.0",
-    "dotenv": "catalog:",
+    "dotenv": "18.0.9",
     "esbuild": "0.28.2",
-    "eslint": "catalog:",
+    "eslint": "10.14.0",
     "jiti": "2.7.0",
     "lefthook": "2.2.1",
     "prettier": "3.9.10",
@@ -48,7 +47,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
     "v11y-check": "0.19.9",
-    "vite": "catalog:",
+    "vite": "8.3.5",
     "vitest": "catalog:",
     "yaml": "2.9.1",
     "zod": "4.6.7"

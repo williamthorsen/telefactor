@@ -13,12 +13,6 @@ const config = defineConfig({
     labels: {
       'scope:root': { color: '00ff96' },
       'scope:_workspace': { color: '00ff96' },
-      'scope:api': { color: '00ff96' },
-      'scope:astro': { color: '00ff96', archived: true },
-      'scope:cdk': { color: '00ff96' },
-      'scope:chrome': { color: '00ff96' },
-      'scope:nextjs': { color: '00ff96' },
-      'scope:react': { color: '00ff96' },
     },
   },
 
