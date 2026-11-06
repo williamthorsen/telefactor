@@ -13,7 +13,7 @@ catalog:
   '@types/react-dom': 19.3.0
   '@vitejs/plugin-react': 6.2.1
   '@williamthorsen/eslint-config-typescript': 20.2.0
-  '@williamthorsen/nmr': 0.54.0
+  '@williamthorsen/nmr': 0.55.0
   dotenv: 18.0.9
   eslint: 10.14.0
   eslint-plugin-react: 7.37.5
