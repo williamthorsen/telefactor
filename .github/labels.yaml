@@ -85,6 +85,9 @@
 - name: scope:_workspace
   color: 00ff96
   description: ''
+- name: scope:playground
+  color: 00ff96
+  description: playground app
 - name: scope:root
   color: 00ff96
   description: ''

@@ -19,6 +19,7 @@
   },
   "scopes": {
     "_workspace": "scope:_workspace",
+    "playground": "scope:playground",
     "telefactor": "scope:telefactor",
     "root": "scope:root"
   }
