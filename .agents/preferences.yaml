@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://github.com/williamthorsen/codeassembly/raw/main/packages/agents/schemas/preferences.json
 project:
-  slug: node-monorepo
+  slug: telefactor
   ticket_ref_prefix: '#'
   maturity: early
   sensitivity: low
