@@ -6,7 +6,8 @@ A library that embeds the user's own agent harness (Claude Code, Rovo Dev, Codex
 
 ## Project structure
 
-- `apps/`: runnable apps that nothing imports (none yet)
+- `apps/`: runnable apps that nothing imports
+- `apps/playground` — `@williamthorsen/telefactor-playground`: the React app that consumes the package's build output, so its scripts compile the package before they read it
 - `packages/_workspace` — scaffold for new libraries (no-op build)
 - `packages/telefactor` — `@williamthorsen/telefactor`: harness registry, headless job runner, Vite plugin, and client
 - `.config/release-kit.config.ts` — release-kit configuration

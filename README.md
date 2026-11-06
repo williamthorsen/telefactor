@@ -23,6 +23,10 @@ Run `nmr` with no command to list every script and the command to which it resol
 
 ## Workspaces
 
+`apps/` contains the runnable apps:
+
+- `playground`: a React app that consumes `@williamthorsen/telefactor`, and the package's example
+
 `packages/` contains the libraries:
 
 - `_workspace`: scaffold for creating new libraries
