@@ -32,6 +32,8 @@ const job = await client.startJob({ prompt: 'Summarize README.md' });
 const finished = await client.getJob(job.id); // poll until `status` is no longer `running`
 ```
 
+The [playground app](https://github.com/williamthorsen/telefactor/tree/main/apps/playground) is a complete example: [`vite.config.ts`](https://github.com/williamthorsen/telefactor/blob/main/apps/playground/vite.config.ts) mounts the plugin, and its page lists the harnesses, tests one, and runs, polls, and cancels a job.
+
 A finished job is `done` with its harness's stdout as `result.output`, `failed` with an `error` that names how the run ended and quotes the end of its stderr, or `cancelled`. The library spawns the user's installed CLI and never reads or forwards its credentials.
 
 ## Harnesses
