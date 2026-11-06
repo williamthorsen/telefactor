@@ -25,13 +25,14 @@ jobs:
   code-quality:
     uses: williamthorsen/.github/.github/workflows/code-quality-pnpm-workflow.yaml@v8
     # The legs together run every constituent of `nmr ci`, plus `shellcheck`. Build runs in a leg of
-    # its own: no other leg reads its output (nextjs's typecheck:pre hook runs `next typegen` for the
-    # route types), and it is the longest check.
+    # its own, because it is the longest check. The playground reads the telefactor package's types
+    # from its build output: Its typecheck:pre and test:pre hooks compile the package, and the lint
+    # leg, which does not enter packages, compiles it first.
     with:
       check-commands: >-
         [
           { "name": "build", "command": "pnpm exec nmr build" },
-          { "name": "lint", "command": "pnpm exec nmr lint:strict" },
+          { "name": "lint", "command": "pnpm --filter @williamthorsen/telefactor exec nmr-compile && pnpm exec nmr lint:strict" },
           { "name": "shell", "command": "pnpm exec nmr lint:shell" },
           { "name": "static", "command": "pnpm exec nmr typecheck && pnpm exec nmr fmt:check" },
           { "name": "test", "command": "pnpm exec nmr test" },
