@@ -65,7 +65,7 @@ export function telefactor({
             url: context.req.url,
           }),
       });
-      // Vite's own request handling relies on Node's global `Request` and `Response`, so leave them in place.
+      // Keep Node's own global `Request` and `Response`, which the adapter otherwise replaces for the whole dev server.
       const listener = getRequestListener((request, env) => app.fetch(request, env), { overrideGlobalObjects: false });
       server.middlewares.use(basePath, (request, response) => {
         void listener(request, response);
