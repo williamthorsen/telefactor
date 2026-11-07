@@ -10,8 +10,8 @@ export const MAX_OUTPUT_BYTES = 1024 * 1024;
 
 /**
  * Creates the job run that prepares a job, executes the harness command in the working directory with the job's
- * placeholders expanded, and returns the result that the job reads, once its schema accepts it. The job's `release` runs once
- * the command has ended. `job` defaults to the built-in prompt job.
+ * placeholders expanded, and returns the result that the job reads, once its schema accepts it. The job's `release`
+ * runs once the command has ended. `job` defaults to the built-in prompt job.
  */
 export function createHarnessRun({
   workingDirectory,

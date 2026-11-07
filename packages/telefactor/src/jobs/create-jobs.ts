@@ -116,8 +116,8 @@ export function createJobs({ run, store }: { run: JobRun; store: JobStore }): Jo
 }
 
 /**
- * Replaces each `{name}` in each argument whose `name` is a key of `values` with its value, in one pass, so that a value
- * is never expanded again. Any other `{…}` stays literal.
+ * Replaces each `{name}` in each argument whose `name` is a key of `values` with its value, in one pass, so that a
+ * value is never expanded again. Any other `{…}` stays literal.
  */
 export function expandArgv(command: readonly string[], values: Readonly<Record<string, string>>): string[] {
   return command.map((argument) =>

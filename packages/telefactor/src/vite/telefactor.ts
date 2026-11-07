@@ -34,11 +34,13 @@ export interface TelefactorPluginOptions {
   /** The path under which the routes are mounted; defaults to `/api/telefactor`. */
   basePath?: string;
   /**
-   * The schema of the app's own keys in the config file, which the file may then hold beside the package's. An app reads
-   * their values with `readHarnessSettings` and the same schema. Its keys may not name the package's keys.
+   * The schema of the app's own keys in the config file, which the file may then hold beside the package's. An app
+   * reads their values with `readHarnessSettings` and the same schema. Its keys may not name the package's keys.
    */
   config?: z.ZodObject;
-  /** The environment variable whose JSON argv replaces every other harness; defaults to `TELEFACTOR_HARNESS_COMMAND`. */
+  /**
+   * The environment variable whose JSON argv replaces every other harness; defaults to `TELEFACTOR_HARNESS_COMMAND`.
+   */
   commandVariable?: string;
   /** The config file, resolved against the Vite root; defaults to `telefactor.config.json`. */
   configPath?: string;
