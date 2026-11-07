@@ -5,7 +5,7 @@ import type { Plugin } from 'vite';
 
 import { createStateStore } from '#src/contract/create-state-store.ts';
 import type { ContractImplementation } from '#src/contract/implement-contract.ts';
-import { readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
+import { HARNESS_COMMAND_VARIABLE, readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { runHarnessTest } from '#src/harness/run-harness-test.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
 import {
@@ -30,6 +30,8 @@ export const DEFAULT_CONFIG_FILE = 'telefactor.config.json';
 export interface TelefactorPluginOptions {
   /** The path under which the routes are mounted; defaults to `/api/telefactor`. */
   basePath?: string;
+  /** The environment variable whose JSON argv replaces every other harness; defaults to `TELEFACTOR_HARNESS_COMMAND`. */
+  commandVariable?: string;
   /** The config file, resolved against the Vite root; defaults to `telefactor.config.json`. */
   configPath?: string;
   /** The contract whose state and actions the page's routes and the MCP endpoint serve, from `implementContract`. */
@@ -41,11 +43,12 @@ export interface TelefactorPluginOptions {
 /**
  * Creates the Vite plugin that serves the harness, job, and terminal routes and the terminal socket on the dev server,
  * and with a contract, its state, actions, and MCP endpoint. It stops the server on a malformed
- * `TELEFACTOR_HARNESS_COMMAND`, re-reads the config file on each request that needs it, logs the MCP endpoint's URL
+ * harness command variable, re-reads the config file on each request that needs it, logs the MCP endpoint's URL
  * once the server listens, and cancels running jobs and ends terminal sessions when the server closes.
  */
 export function telefactor({
   basePath = DEFAULT_BASE_PATH,
+  commandVariable = HARNESS_COMMAND_VARIABLE,
   configPath = DEFAULT_CONFIG_FILE,
   contract,
   workingDirectory = '.',
@@ -56,7 +59,7 @@ export function telefactor({
     configureServer(server) {
       const { root } = server.config;
       // A malformed variable cannot change without a restart.
-      readEnvironmentCommand(process.env);
+      readEnvironmentCommand(process.env, commandVariable);
       const resolvedConfigPath = path.resolve(root, configPath);
       const resolvedWorkingDirectory = path.resolve(root, workingDirectory);
 
@@ -84,7 +87,7 @@ export function telefactor({
             return { ok: true, mcpUrl: `${new URL(local).origin}${basePath}/mcp` };
           },
         },
-        readSettings: () => readHarnessSettings({ env: process.env, configPath: resolvedConfigPath }),
+        readSettings: () => readHarnessSettings({ env: process.env, configPath: resolvedConfigPath, commandVariable }),
         runTest: (argv, signal) => runHarnessTest({ argv, workingDirectory: resolvedWorkingDirectory, signal }),
         isAllowed: (context) =>
           isLoopbackRequest({

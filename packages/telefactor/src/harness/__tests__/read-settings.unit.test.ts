@@ -57,6 +57,16 @@ describe(readHarnessSettings, () => {
     });
   });
 
+  it('reads the harness from the variable that the options name', async () => {
+    const { configPath } = await createConfigPath();
+    const env = { [HARNESS_COMMAND_VARIABLE]: '["ignored"]', MY_APP_COMMAND: '["my-agent"]' };
+
+    expect(await readHarnessSettings({ env, configPath, commandVariable: 'MY_APP_COMMAND' })).toMatchObject({
+      source: 'environment',
+      settings: { harnesses: { environment: { command: ['my-agent'] } } },
+    });
+  });
+
   it('reports invalid JSON', async () => {
     const { configPath } = await createConfigPath();
     await writeFile(configPath, '{');
@@ -92,6 +102,11 @@ describe(readEnvironmentCommand, () => {
 
   it.each([['not json'], ['[]'], ['"claude"'], ['[1]']])('throws on %s', (value) => {
     expect(() => readEnvironmentCommand({ [HARNESS_COMMAND_VARIABLE]: value })).toThrow(HARNESS_COMMAND_VARIABLE);
+  });
+
+  it('reads and names the variable that it is given', () => {
+    expect(readEnvironmentCommand({ MY_APP_COMMAND: '["my-agent"]' }, 'MY_APP_COMMAND')).toStrictEqual(['my-agent']);
+    expect(() => readEnvironmentCommand({ MY_APP_COMMAND: '[]' }, 'MY_APP_COMMAND')).toThrow(/^MY_APP_COMMAND must/);
   });
 });
 

@@ -7,7 +7,7 @@ import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 
 import { BUILT_IN_SETTINGS, harnessConfigSchema, type HarnessSettings } from './settings-schema.ts';
 
-/** The environment variable whose JSON argv replaces every other harness with one. */
+/** The environment variable whose JSON argv replaces every other harness with one, when the options name none. */
 export const HARNESS_COMMAND_VARIABLE = 'TELEFACTOR_HARNESS_COMMAND';
 
 /** The name of the one harness that the environment variable defines. */
@@ -34,11 +34,14 @@ const environmentCommandSchema = z.array(z.string()).min(1);
 export async function readHarnessSettings({
   env,
   configPath,
+  commandVariable = HARNESS_COMMAND_VARIABLE,
 }: {
   env: Readonly<Record<string, string | undefined>>;
   configPath: string;
+  /** The environment variable that defines a harness; defaults to `TELEFACTOR_HARNESS_COMMAND`. */
+  commandVariable?: string;
 }): Promise<HarnessSettingsResult> {
-  const command = readEnvironmentCommand(env);
+  const command = readEnvironmentCommand(env, commandVariable);
   const read = await readConfigFile(configPath);
   if (!read.ok) return { ok: false, source: 'file', configPath, problems: read.problems };
 
@@ -60,8 +63,11 @@ export async function readHarnessSettings({
 }
 
 /** Returns the argv that the environment variable sets, if any; throws on a malformed value. */
-export function readEnvironmentCommand(env: Readonly<Record<string, string | undefined>>): string[] | undefined {
-  const raw = env[HARNESS_COMMAND_VARIABLE];
+export function readEnvironmentCommand(
+  env: Readonly<Record<string, string | undefined>>,
+  variable: string = HARNESS_COMMAND_VARIABLE,
+): string[] | undefined {
+  const raw = env[variable];
   if (raw === undefined || raw.trim() === '') return undefined;
 
   let value: unknown;
@@ -72,9 +78,7 @@ export function readEnvironmentCommand(env: Readonly<Record<string, string | und
   }
   const parsed = environmentCommandSchema.safeParse(value);
   if (!parsed.success) {
-    throw new Error(
-      `${HARNESS_COMMAND_VARIABLE} must be a JSON array of one or more strings, such as ["claude", "-p"]; it is ${raw}`,
-    );
+    throw new Error(`${variable} must be a JSON array of one or more strings, such as ["claude", "-p"]; it is ${raw}`);
   }
   return parsed.data;
 }
