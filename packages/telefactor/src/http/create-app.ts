@@ -64,11 +64,12 @@ export function createTelefactorApp<E extends Env>({
       hasConfigFile,
       defaultHarness: settings.default,
       timeoutMinutes: settings.timeoutMinutes,
-      harnesses: Object.entries(settings.harnesses).map(([name, { label = name, command, test }]) => ({
+      harnesses: Object.entries(settings.harnesses).map(([name, { label = name, command, test, interactive }]) => ({
         name,
         label,
         command,
         testable: test !== undefined,
+        interactive: interactive !== undefined,
       })),
     };
     return context.json(list);

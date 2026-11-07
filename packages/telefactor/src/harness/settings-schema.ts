@@ -10,13 +10,25 @@ export const MAX_TIMEOUT_MINUTES = 120;
 
 const argvSchema = z.array(z.string()).min(1, 'Give at least one argument');
 
-/** A harness recipe: `{prompt}` in a `command` argument expands to the prompt text, which also goes to stdin. */
-export const harnessSchema = z.strictObject({
-  label: z.string().optional(),
-  command: argvSchema,
-  /** A quick check that the harness is installed and signed in; it passes on exit code 0. */
-  test: argvSchema.optional(),
-});
+/**
+ * A harness recipe: `{prompt}` in a `command` argument expands to the prompt text, which also goes to stdin. `{mcpUrl}`
+ * in an `mcpArgs` argument expands to the URL of the MCP endpoint.
+ */
+export const harnessSchema = z
+  .strictObject({
+    label: z.string().optional(),
+    command: argvSchema,
+    /** A quick check that the harness is installed and signed in; it passes on exit code 0. */
+    test: argvSchema.optional(),
+    /** The command that starts an interactive session in the embedded terminal. */
+    interactive: argvSchema.optional(),
+    /** Arguments appended to `interactive` when the app serves an MCP endpoint, which connect the harness to it. */
+    mcpArgs: argvSchema.optional(),
+  })
+  .refine((harness) => harness.mcpArgs === undefined || harness.interactive !== undefined, {
+    path: ['mcpArgs'],
+    message: 'Define `interactive` to use `mcpArgs`',
+  });
 
 export type Harness = z.output<typeof harnessSchema>;
 

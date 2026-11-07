@@ -18,7 +18,8 @@ export const errorBodySchema = z.object({ error: z.string() });
 
 /**
  * The body of `GET /harnesses`: the harnesses that the settings define, or the problems of a config file that cannot
- * be used. `configPath` is where the config file is expected, and `hasConfigFile` reports whether it exists.
+ * be used. `configPath` is where the config file is expected, and `hasConfigFile` reports whether it exists. `interactive`
+ * reports whether a harness can run in the embedded terminal.
  */
 export const harnessListSchema = z.union([
   z.object({
@@ -28,7 +29,13 @@ export const harnessListSchema = z.union([
     defaultHarness: z.string(),
     timeoutMinutes: z.number(),
     harnesses: z.array(
-      z.object({ name: z.string(), label: z.string(), command: z.array(z.string()), testable: z.boolean() }),
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        command: z.array(z.string()),
+        testable: z.boolean(),
+        interactive: z.boolean(),
+      }),
     ),
   }),
   z.object({ source: z.literal('file'), configPath: z.string(), problems: z.array(problemSchema) }),

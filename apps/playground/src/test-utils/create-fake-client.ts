@@ -8,8 +8,8 @@ export const HARNESS_LIST: HarnessList = {
   defaultHarness: 'claude-code',
   timeoutMinutes: 10,
   harnesses: [
-    { name: 'claude-code', label: 'Claude Code', command: ['claude', '-p'], testable: true },
-    { name: 'codex', label: 'Codex', command: ['codex', 'exec'], testable: false },
+    { name: 'claude-code', label: 'Claude Code', command: ['claude', '-p'], testable: true, interactive: true },
+    { name: 'codex', label: 'Codex', command: ['codex', 'exec'], testable: false, interactive: false },
   ],
 };
 
