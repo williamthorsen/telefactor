@@ -4,6 +4,7 @@ import { createTelefactorClient } from '../create-telefactor-client.ts';
 import { TelefactorRequestError } from '../telefactor-request-error.ts';
 
 const JOB = { id: 'a/b', harness: 'codex', status: 'running' };
+const SESSION = { id: 'a/b', harness: 'codex' };
 
 describe(createTelefactorClient, () => {
   it('starts a job with a JSON body under the base path', async () => {
@@ -85,6 +86,43 @@ describe(createTelefactorClient, () => {
     const { client } = createFixture(200, { id: 1 });
 
     await expect(client.getJob('x')).rejects.toThrow();
+  });
+  it('starts a terminal session with a JSON body', async () => {
+    const { client, calls } = createFixture(201, SESSION);
+
+    expect(await client.createTerminalSession({ harness: 'codex' })).toStrictEqual(SESSION);
+    expect(calls).toStrictEqual([
+      {
+        url: '/api/telefactor/terminal/sessions',
+        method: 'POST',
+        contentType: 'application/json',
+        body: '{"harness":"codex"}',
+      },
+    ]);
+  });
+
+  it('ends a terminal session', async () => {
+    const { client, calls } = createFixture(200, SESSION);
+
+    expect(await client.closeTerminalSession('a/b')).toStrictEqual(SESSION);
+    expect(calls).toMatchObject([{ url: '/api/telefactor/terminal/sessions/a%2Fb', method: 'DELETE' }]);
+  });
+
+  it.each([
+    ['http:', 'ws://localhost:5176/custom/terminal/sessions/a%2Fb/socket'],
+    ['https:', 'wss://localhost:5176/custom/terminal/sessions/a%2Fb/socket'],
+  ])('builds the socket URL of a session on an %s page', (protocol, url) => {
+    const client = createTelefactorClient({ basePath: '/custom', location: { protocol, host: 'localhost:5176' } });
+
+    expect(client.terminalSocketUrl('a/b')).toBe(url);
+  });
+
+  it('refuses to build a socket URL outside a page', () => {
+    expect(() => createTelefactorClient().terminalSocketUrl('a')).toThrow(/needs the page location/);
+  });
+
+  it('exposes its base path', () => {
+    expect(createTelefactorClient({ basePath: '/custom' }).basePath).toBe('/custom');
   });
 });
 

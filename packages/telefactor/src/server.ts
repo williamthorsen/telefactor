@@ -1,4 +1,7 @@
-/** Public entry point `@williamthorsen/telefactor/server`: the harness registry, the job runner, and the routes. */
+/**
+ * Public entry point `@williamthorsen/telefactor/server`: the harness registry, the job runner, the terminal sessions
+ * and their socket, and the routes.
+ */
 export {
   createStateStore,
   describeRefusal,
@@ -31,8 +34,13 @@ export {
   type HarnessSettings,
   MAX_TIMEOUT_MINUTES,
 } from './harness/settings-schema.ts';
-export { createTelefactorApp, type TelefactorAppOptions } from './http/create-app.ts';
-export { isLoopbackRequest, isSameOriginRequest, readRequestHost } from './http/request-guards.ts';
+export { createTelefactorApp, type TelefactorAppOptions, type TerminalRoutesOptions } from './http/create-app.ts';
+export {
+  isAllowedUpgradeRequest,
+  isLoopbackRequest,
+  isSameOriginRequest,
+  readRequestHost,
+} from './http/request-guards.ts';
 export { createHarnessRun, describeRunFailure, MAX_OUTPUT_BYTES } from './jobs/create-harness-run.ts';
 export {
   type CancelOutcome,
@@ -46,3 +54,16 @@ export {
 } from './jobs/create-jobs.ts';
 export { createInMemoryJobStore } from './jobs/in-memory-job-store.ts';
 export { type Job, jobSchema, type JobStatus } from './jobs/job-schemas.ts';
+export {
+  createTerminalSessions,
+  type PtyProcess,
+  type SpawnPty,
+  type TerminalAttachment,
+  type TerminalSession,
+  type TerminalSessions,
+  type TerminalSessionsOptions,
+  type TerminalSocket,
+} from './terminal/create-terminal-sessions.ts';
+export { createTerminalUpgradeHandler, type TerminalUpgradeOptions } from './terminal/handle-terminal-upgrade.ts';
+export { loadNodePty } from './terminal/load-node-pty.ts';
+export { TERMINAL_CLOSE_CODES } from './terminal/terminal-close-codes.ts';

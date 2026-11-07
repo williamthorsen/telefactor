@@ -1,6 +1,7 @@
 /* WCAG contrast against the surfaces on which each colour is set: text 16.6 (surface), 15.1 (raised), 14.9 (alert);
    secondary 6.4 (surface), 5.8 (raised); danger 6.7 (alert); border and focus 3.7 and 6.7 (surface); white on
-   accent 6.7, on accent-hover 8.9. */
+   accent 6.7, on accent-hover 8.9. Terminal: foreground 14.0 on its background; terminal-react's default focus ring
+   (#3b82f6) 4.5 on the terminal background and 3.7 on the surface. */
 :root {
   --color-accent: #0b5cad;
   --color-accent-hover: #084a8c;
@@ -144,4 +145,13 @@ button[aria-disabled='true'] {
 :focus-visible {
   outline: 3px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.terminal-panel {
+  --telefactor-terminal-height: 24rem;
 }

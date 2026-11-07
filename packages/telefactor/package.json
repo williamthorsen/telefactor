@@ -32,6 +32,10 @@
       "types": "./dist/esm/contract.d.ts",
       "default": "./dist/esm/contract.js"
     },
+    "./react": {
+      "types": "./dist/esm/react.d.ts",
+      "default": "./dist/esm/react.js"
+    },
     "./server": {
       "types": "./dist/esm/server.d.ts",
       "default": "./dist/esm/server.js"
@@ -50,18 +54,39 @@
   "dependencies": {
     "@hono/node-server": "2.1.6",
     "@modelcontextprotocol/server": "2.4.0",
+    "@williamthorsen/terminal-react": "catalog:",
+    "@xterm/addon-serialize": "0.14.0",
+    "@xterm/headless": "6.0.0",
     "hono": "4.13.16",
+    "node-pty": "1.2.0-beta.18",
+    "ws": "8.22.1",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.4.0",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/react": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/ws": "8.18.2",
+    "@vitejs/plugin-react": "catalog:",
     "@williamthorsen/nmr": "catalog:",
+    "eslint-plugin-react": "catalog:",
+    "jsdom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "react": "^19.0.0",
     "vite": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=24"

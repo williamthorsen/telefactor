@@ -26,6 +26,20 @@ describe('harnessConfigSchema', () => {
     ]);
   });
 
+  it('accepts an interactive command with MCP arguments', () => {
+    const recipe = { command: ['a'], interactive: ['a'], mcpArgs: ['--mcp', '{mcpUrl}'] };
+
+    expect(harnessConfigSchema.parse({ harnesses: { a: recipe } }).harnesses).toStrictEqual({ a: recipe });
+  });
+
+  it('reports MCP arguments without an interactive command at `mcpArgs`', () => {
+    const result = harnessConfigSchema.safeParse({ harnesses: { a: { command: ['a'], mcpArgs: ['--mcp'] } } });
+
+    expect(result.error?.issues).toMatchObject([
+      { path: ['harnesses', 'a', 'mcpArgs'], message: 'Define `interactive` to use `mcpArgs`' },
+    ]);
+  });
+
   it('rejects a default that names no harness, including an inherited property', () => {
     const result = harnessConfigSchema.safeParse({ default: 'toString' });
 
@@ -39,6 +53,8 @@ describe('harnessConfigSchema', () => {
     ['an empty harness record', { harnesses: {} }],
     ['a timeout above the maximum', { timeoutMinutes: 121 }],
     ['a non-positive timeout', { timeoutMinutes: 0 }],
+    ['an empty interactive command', { harnesses: { a: { command: ['a'], interactive: [] } } }],
+    ['MCP arguments without an interactive command', { harnesses: { a: { command: ['a'], mcpArgs: ['--mcp'] } } }],
   ])('rejects %s', (_case, config) => {
     expect(harnessConfigSchema.safeParse(config).success).toBe(false);
   });
@@ -55,10 +71,11 @@ describe(findHarness, () => {
 });
 
 describe('built-in harnesses', () => {
-  it('give every recipe a label and a test command', () => {
+  it('give every recipe a label, a test command, and an interactive command', () => {
     for (const harness of Object.values(BUILT_IN_HARNESSES)) {
       expect(harness.label).toBeDefined();
       expect(harness.test).toBeDefined();
+      expect(harness.interactive).toBeDefined();
     }
   });
 });

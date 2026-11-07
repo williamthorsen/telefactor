@@ -38,6 +38,7 @@ describe(createTelefactorApp, () => {
       label: 'Codex',
       command: ['codex', 'exec', '-'],
       testable: true,
+      interactive: true,
     });
   });
 
