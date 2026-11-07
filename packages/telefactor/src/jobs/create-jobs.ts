@@ -9,31 +9,37 @@ export interface JobHarness {
   timeoutMs: number;
 }
 
-/** One run of a harness command. */
+/** One run of a job: the harness's command before expansion, the prompt, and the request's other fields. */
 export interface JobRunInput {
+  id: string;
   harness: string;
-  argv: readonly string[];
-  stdin: string;
+  command: readonly string[];
+  prompt: string;
+  input: Readonly<Record<string, unknown>>;
 }
 
-/** Runs a harness command and returns its output; rejects on failure, and stops and rejects once `signal` aborts. */
-export type JobRun = (input: JobRunInput, signal: AbortSignal) => Promise<{ output: string }>;
+/** Runs a job and returns its result; rejects on failure, and stops and rejects once `signal` aborts. */
+export type JobRun = (input: JobRunInput, signal: AbortSignal) => Promise<unknown>;
 
 /** Holds job state. */
 export interface JobStore {
-  get(id: string): Promise<Job | undefined>;
-  put(job: Job): Promise<void>;
+  get(id: string): Promise<Job<unknown> | undefined>;
+  put(job: Job<unknown>): Promise<void>;
 }
 
-export type CancelOutcome = { ok: true; job: Job } | { ok: false; reason: 'finished' | 'not-found' };
+export type CancelOutcome = { ok: true; job: Job<unknown> } | { ok: false; reason: 'finished' | 'not-found' };
 
 /** Starts, reads, and cancels headless jobs. */
 export interface Jobs {
   cancel(id: string): Promise<CancelOutcome>;
   /** Cancels every running job. */
   cancelAll(): Promise<void>;
-  get(id: string): Promise<Job | undefined>;
-  start(request: { prompt: string }, harness: JobHarness): Promise<Job>;
+  get(id: string): Promise<Job<unknown> | undefined>;
+  /** Starts a job; `input` holds the request's fields beyond `prompt` and `harness`, and defaults to none. */
+  start(
+    request: { prompt: string; input?: Readonly<Record<string, unknown>> },
+    harness: JobHarness,
+  ): Promise<Job<unknown>>;
 }
 
 /**
@@ -42,11 +48,11 @@ export interface Jobs {
  * once and abort the run, without waiting for its processes to end.
  */
 export function createJobs({ run, store }: { run: JobRun; store: JobStore }): Jobs {
-  type Outcome = Pick<Job, 'error' | 'result' | 'status'>;
+  type Outcome = Pick<Job<unknown>, 'error' | 'result' | 'status'>;
   const runs = new Map<string, { controller: AbortController; timer: ReturnType<typeof setTimeout> }>();
 
   /** Records a running job's final state unless another outcome already did; returns the recorded job. */
-  async function finish(id: string, outcome: Outcome, abortReason?: DOMException): Promise<Job | undefined> {
+  async function finish(id: string, outcome: Outcome, abortReason?: DOMException): Promise<Job<unknown> | undefined> {
     const active = runs.get(id);
     if (active === undefined) return undefined;
     runs.delete(id);
@@ -92,8 +98,8 @@ export function createJobs({ run, store }: { run: JobRun; store: JobStore }): Jo
       return store.get(id);
     },
 
-    async start({ prompt }, { name, command, timeoutMs }) {
-      const job: Job = { id: crypto.randomUUID(), harness: name, status: 'running' };
+    async start({ prompt, input = {} }, { name, command, timeoutMs }) {
+      const job: Job<unknown> = { id: crypto.randomUUID(), harness: name, status: 'running' };
       await store.put(job);
 
       const controller = new AbortController();
@@ -103,7 +109,7 @@ export function createJobs({ run, store }: { run: JobRun; store: JobStore }): Jo
       }, timeoutMs);
       runs.set(job.id, { controller, timer });
 
-      void execute(job.id, { harness: name, argv: expandArgv(command, { prompt }), stdin: prompt }, controller.signal);
+      void execute(job.id, { id: job.id, harness: name, command, prompt, input }, controller.signal);
       return job;
     },
   };

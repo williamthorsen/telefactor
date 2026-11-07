@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
+import { defineJob, type JobDeclaration } from '#src/contract/define-job.ts';
 import type { HarnessSettingsResult } from '#src/harness/read-settings.ts';
 import { BUILT_IN_SETTINGS } from '#src/harness/settings-schema.ts';
 import type { CancelOutcome, JobHarness, Jobs } from '#src/jobs/create-jobs.ts';
@@ -78,7 +80,7 @@ describe(createTelefactorApp, () => {
 
     expect(response.status).toBe(201);
     expect(starts).toStrictEqual([
-      { prompt: 'hi', harness: { name: 'claude-code', command: ['claude', '-p'], timeoutMs: 600_000 } },
+      { prompt: 'hi', input: {}, harness: { name: 'claude-code', command: ['claude', '-p'], timeoutMs: 600_000 } },
     ]);
   });
 
@@ -94,6 +96,7 @@ describe(createTelefactorApp, () => {
     ['a blank prompt', { prompt: '  ' }, 'prompt'],
     ['an unknown harness', { prompt: 'hi', harness: 'toString' }, 'harness'],
     ['a command in the body', { prompt: 'hi', harness: 1 }, 'harness'],
+    ['a field that the job does not take', { prompt: 'hi', command: ['sh'] }, ''],
   ])('refuses %s', async (_case, body, path) => {
     const { app, starts } = createFixture();
 
@@ -102,6 +105,18 @@ describe(createTelefactorApp, () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ problems: [{ path }] });
     expect(starts).toHaveLength(0);
+  });
+
+  it("passes the job's own fields as its input, and refuses an invalid one", async () => {
+    const job = defineJob({ input: z.object({ name: z.string().max(3) }), result: z.unknown() });
+    const { app, starts } = createFixture({ job });
+
+    expect((await postJob(app, { prompt: 'hi', name: 'abc' })).status).toBe(201);
+    const refused = await postJob(app, { prompt: 'hi', name: 'abcd' });
+
+    expect(starts.map((start) => start.input)).toStrictEqual([{ name: 'abc' }]);
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ problems: [{ path: 'name' }] });
   });
 
   it('refuses a body that is not JSON', async () => {
@@ -152,20 +167,27 @@ function createFixture({
   isAllowed = true,
   settings = SETTINGS,
   cancelOutcome = { ok: true, job: { ...RUNNING, status: 'cancelled' } },
-}: { isAllowed?: boolean; settings?: HarnessSettingsResult; cancelOutcome?: CancelOutcome } = {}) {
-  const starts: { prompt: string; harness: JobHarness }[] = [];
+  job,
+}: {
+  isAllowed?: boolean;
+  settings?: HarnessSettingsResult;
+  cancelOutcome?: CancelOutcome;
+  job?: JobDeclaration;
+} = {}) {
+  const starts: { prompt: string; input: unknown; harness: JobHarness }[] = [];
   const testRuns: (readonly string[])[] = [];
   const jobs: Jobs = {
     cancel: () => Promise.resolve(cancelOutcome),
     cancelAll: () => Promise.resolve(),
     get: (id) => Promise.resolve(id === RUNNING.id ? RUNNING : undefined),
-    start: ({ prompt }, harness) => {
-      starts.push({ prompt, harness });
+    start: ({ prompt, input }, harness) => {
+      starts.push({ prompt, input, harness });
       return Promise.resolve(RUNNING);
     },
   };
   const app = createTelefactorApp({
     jobs,
+    ...(job !== undefined && { job }),
     readSettings: () => Promise.resolve(settings),
     runTest: (argv) => {
       testRuns.push(argv);

@@ -27,13 +27,17 @@ describe(createJobs, () => {
     });
   });
 
-  it('passes the expanded argv and the prompt as stdin', async () => {
+  it("passes the job's id, the command, the prompt, and the input to the run", async () => {
     const pending = createPendingRun();
     const jobs = createJobs({ run: pending.run, store: createInMemoryJobStore() });
 
-    await jobs.start({ prompt: 'hi' }, HARNESS);
+    const first = await jobs.start({ prompt: 'hi' }, HARNESS);
+    const second = await jobs.start({ prompt: 'ho', input: { name: 'n' } }, HARNESS);
 
-    expect(pending.inputs).toStrictEqual([{ harness: 'fake', argv: ['fake', 'hi'], stdin: 'hi' }]);
+    expect(pending.inputs).toStrictEqual([
+      { id: first.id, harness: 'fake', command: ['fake', '{prompt}'], prompt: 'hi', input: {} },
+      { id: second.id, harness: 'fake', command: ['fake', '{prompt}'], prompt: 'ho', input: { name: 'n' } },
+    ]);
   });
 
   it('records a failed run with its error', async () => {
@@ -135,12 +139,12 @@ function createPendingRun(): {
   run: JobRun;
   inputs: JobRunInput[];
   signals: AbortSignal[];
-  resolve: (value: { output: string }) => void;
+  resolve: (value: unknown) => void;
   reject: (error: Error) => void;
 } {
   const inputs: JobRunInput[] = [];
   const signals: AbortSignal[] = [];
-  const settlers: { resolve: (value: { output: string }) => void; reject: (error: Error) => void }[] = [];
+  const settlers: { resolve: (value: unknown) => void; reject: (error: Error) => void }[] = [];
   return {
     inputs,
     signals,

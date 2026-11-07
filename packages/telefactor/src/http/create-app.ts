@@ -1,6 +1,7 @@
 import { createMcpHandler } from '@modelcontextprotocol/server';
 import { type Context, type Env, Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
+import { z } from 'zod';
 
 import {
   describeRefusal,
@@ -8,6 +9,7 @@ import {
   type StateSnapshot,
   type StateStore,
 } from '#src/contract/create-state-store.ts';
+import { type JobDeclaration, promptJob } from '#src/contract/define-job.ts';
 import { buildInteractiveArgv } from '#src/harness/build-interactive-argv.ts';
 import type { HarnessSettingsResult } from '#src/harness/read-settings.ts';
 import { findHarness } from '#src/harness/settings-schema.ts';
@@ -28,8 +30,10 @@ const JOB_NOT_FOUND = 'The job does not exist.';
 
 export interface TelefactorAppOptions<E extends Env> {
   jobs: Jobs;
+  /** The job that `POST /jobs` starts, whose input fields the request may include; defaults to the prompt job. */
+  job?: JobDeclaration;
   /** Resolves the harness settings; called on each request that needs them, so that an edit applies at once. */
-  readSettings: () => Promise<HarnessSettingsResult>;
+  readSettings: () => Promise<HarnessSettingsResult<unknown>>;
   /** Runs a harness's test command; stops it once `signal` is aborted. */
   runTest: (argv: readonly string[], signal: AbortSignal) => Promise<HarnessTestResult>;
   /** Decides whether a request may reach the routes; a rejected request gets `403`. */
@@ -54,6 +58,7 @@ export interface TerminalRoutesOptions {
  */
 export function createTelefactorApp<E extends Env>({
   jobs,
+  job = promptJob,
   readSettings,
   runTest,
   isAllowed,
@@ -61,6 +66,8 @@ export function createTelefactorApp<E extends Env>({
   terminal,
 }: TelefactorAppOptions<E>): Hono<E> {
   const app = new Hono<E>();
+  // A strict schema reports a misspelt field rather than dropping it.
+  const jobRequestSchema = z.strictObject({ ...startJobRequestSchema.shape, ...job.input.shape });
 
   app.use(async (context, next) => {
     if (isAllowed(context)) {
@@ -106,11 +113,11 @@ export function createTelefactorApp<E extends Env>({
   app.post('/jobs', async (context) => {
     const body = await readJsonBody(context);
     if (!body.ok) return body.response;
-    const parsed = startJobRequestSchema.safeParse(body.value);
+    const parsed = jobRequestSchema.safeParse(body.value);
     if (!parsed.success) return context.json({ problems: describeIssues(parsed.error.issues) }, 400);
     const resolved = await readSettings();
     if (!resolved.ok) return context.json({ problems: resolved.problems }, 400);
-    const { prompt, harness: harnessName = resolved.settings.default } = parsed.data;
+    const { prompt, harness: harnessName = resolved.settings.default, ...input } = parsed.data;
     const harness = findHarness(resolved.settings, harnessName);
     if (harness === undefined) {
       return context.json(
@@ -119,7 +126,10 @@ export function createTelefactorApp<E extends Env>({
       );
     }
     const timeoutMs = resolved.settings.timeoutMinutes * 60_000;
-    return context.json(await jobs.start({ prompt }, { name: harnessName, command: harness.command, timeoutMs }), 201);
+    return context.json(
+      await jobs.start({ prompt, input }, { name: harnessName, command: harness.command, timeoutMs }),
+      201,
+    );
   });
 
   app.get('/jobs/:id', async (context) => {

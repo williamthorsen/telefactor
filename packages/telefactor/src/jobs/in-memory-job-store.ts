@@ -3,7 +3,7 @@ import type { Job } from './job-schemas.ts';
 
 /** Creates a job store that holds jobs in this process for as long as it runs. */
 export function createInMemoryJobStore(): JobStore {
-  const jobs = new Map<string, Job>();
+  const jobs = new Map<string, Job<unknown>>();
   return {
     get(id) {
       const job = jobs.get(id);
