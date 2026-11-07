@@ -1,7 +1,6 @@
-import { type ChildProcess, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 
-/** The time between the SIGTERM and the SIGKILL sent to a stopped command's process group. */
-export const KILL_GRACE_MS = 5000;
+import { KILL_GRACE_MS, killProcessGroup } from './kill-process-group.ts';
 
 /** The number of trailing lines of a command's output that a report quotes. */
 const TAIL_LINES = 20;
@@ -53,8 +52,8 @@ export function runCommand({
     let stderr = '';
 
     function stop(): void {
-      killGroup(child, 'SIGTERM');
-      setTimeout(() => killGroup(child, 'SIGKILL'), killGraceMs).unref();
+      killProcessGroup(child.pid, 'SIGTERM');
+      setTimeout(() => killProcessGroup(child.pid, 'SIGKILL'), killGraceMs).unref();
     }
 
     child.stdout.on('data', (chunk: Buffer) => {
@@ -106,15 +105,3 @@ export function describeExit({ code, signal }: Pick<CommandRun, 'code' | 'signal
 export function takeTail(output: string): string {
   return output.trim().split('\n').slice(-TAIL_LINES).join('\n');
 }
-
-// region | Helpers
-/** Sends a signal to the child's process group, which contains every process that the command started. */
-function killGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (child.pid === undefined) return;
-  try {
-    process.kill(-child.pid, signal);
-  } catch {
-    // The group has already ended.
-  }
-}
-// endregion | Helpers
