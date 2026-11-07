@@ -7,6 +7,7 @@ import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 
 import {
   buildHarnessConfigSchema,
+  type BuiltInHarnesses,
   type EmptyAppConfig,
   harnessConfigSchema,
   type HarnessSettings,
@@ -28,6 +29,8 @@ export type HarnessSettingsResult<A = EmptyAppConfig> =
 export interface ReadHarnessSettingsOptions {
   env: Readonly<Record<string, string | undefined>>;
   configPath: string;
+  /** The harnesses that apply in place of the package's recipes when neither the variable nor the file defines any. */
+  builtIn?: BuiltInHarnesses;
   /** The environment variable that defines a harness; defaults to `TELEFACTOR_HARNESS_COMMAND`. */
   commandVariable?: string;
 }
@@ -42,10 +45,11 @@ type ConfigSchema<A> = z.ZodType<HarnessSettings<A>>;
 const environmentCommandSchema = z.array(z.string()).min(1);
 
 /**
- * Resolves the harness settings from the config file, else the built-in settings. When the environment variable is
- * set, its harness replaces the harnesses that either defines, and the file's timeout still applies. With an app config
- * schema, the file may hold the app's keys too, and their values, with their defaults when the file is absent, are
- * returned under `settings.app`. Throws on a malformed variable, and on an app config schema that names a package key.
+ * Resolves the harness settings from the config file, else the built-in settings: the app's `builtIn` when given, else
+ * the package's recipes. When the environment variable is set, its harness replaces the harnesses that either defines,
+ * and the file's timeout still applies. With an app config schema, the file may hold the app's keys too, and their
+ * values, with their defaults when the file is absent, are returned under `settings.app`. Throws on a malformed
+ * variable, on an app config schema that names a package key, and on invalid built-in harnesses.
  */
 export function readHarnessSettings(options: ReadHarnessSettingsOptions): Promise<HarnessSettingsResult>;
 export function readHarnessSettings<S extends z.ZodObject>(
@@ -54,10 +58,9 @@ export function readHarnessSettings<S extends z.ZodObject>(
 export function readHarnessSettings(
   options: ReadHarnessSettingsOptions & { config?: z.ZodObject },
 ): Promise<HarnessSettingsResult<unknown>> {
-  const { config, ...rest } = options;
-  return config === undefined
-    ? readSettingsWithSchema(rest, harnessConfigSchema)
-    : readSettingsWithSchema(rest, buildHarnessConfigSchema(config));
+  const { builtIn, config, ...rest } = options;
+  if (config === undefined && builtIn === undefined) return readSettingsWithSchema(rest, harnessConfigSchema);
+  return readSettingsWithSchema(rest, buildHarnessConfigSchema(config ?? z.object({}), builtIn));
 }
 
 /** Returns the argv that the environment variable sets, if any; throws on a malformed value. */
