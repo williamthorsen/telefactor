@@ -3,9 +3,9 @@ import { type HarnessTestResult, TelefactorRequestError } from '@williamthorsen/
 import { type ReactElement, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createFakeClient } from '#src/test-utils/create-fake-client.ts';
+import { createFakeClient, HARNESS_LIST } from '#src/test-utils/create-fake-client.ts';
 
-import { HarnessPanel } from '../HarnessPanel.tsx';
+import { type HarnessEntry, HarnessPanel } from '../HarnessPanel.tsx';
 
 describe(HarnessPanel, () => {
   it('preselects the default harness and reports it', async () => {
@@ -13,8 +13,17 @@ describe(HarnessPanel, () => {
     renderPanel(createFakeClient(), onHarnessChange);
 
     expect(await screen.findByLabelText('Harness')).toHaveValue('claude-code');
-    expect(onHarnessChange).toHaveBeenCalledWith('claude-code');
+    expect(onHarnessChange).toHaveBeenCalledWith(HARNESS_LIST.harnesses[0]);
     expect(screen.getByRole('option', { name: 'Codex' })).toBeInTheDocument();
+  });
+
+  it('reports the entry of the harness that the user selects', async () => {
+    const onHarnessChange = vi.fn();
+    renderPanel(createFakeClient(), onHarnessChange);
+
+    fireEvent.change(await screen.findByLabelText('Harness'), { target: { value: 'codex' } });
+
+    expect(onHarnessChange).toHaveBeenLastCalledWith(HARNESS_LIST.harnesses[1]);
   });
 
   it("shows the config file's problems and reports that no harness can run", async () => {
@@ -112,16 +121,16 @@ describe(HarnessPanel, () => {
 // region | Helpers
 function renderPanel(
   client: ReturnType<typeof createFakeClient>,
-  onHarnessChange: (harness: string | undefined) => void = () => {},
+  onHarnessChange: (harness: HarnessEntry | undefined) => void = () => {},
 ): void {
   function Harness(): ReactElement {
-    const [harness, setHarness] = useState<string>();
+    const [harness, setHarness] = useState<HarnessEntry>();
     // Keep the callback's identity stable, as `HarnessPanel` requires.
-    const [report] = useState(() => (next: string | undefined) => {
+    const [report] = useState(() => (next: HarnessEntry | undefined) => {
       onHarnessChange(next);
       setHarness(next);
     });
-    return <HarnessPanel client={client} harness={harness} onHarnessChange={report} />;
+    return <HarnessPanel client={client} harness={harness?.name} onHarnessChange={report} />;
   }
   render(<Harness />);
 }

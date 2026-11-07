@@ -4,9 +4,12 @@ import { type ReactElement, useEffect, useState } from 'react';
 import { ProblemList } from '#src/requests/ProblemList.tsx';
 import { RequestError } from '#src/requests/RequestError.tsx';
 
+/** A harness as the list describes it. */
+export type HarnessEntry = Extract<HarnessList, { harnesses: unknown }>['harnesses'][number];
+
 /**
- * The harness picker and its test button. Reports the default harness once the list loads, and `undefined` while no
- * harness can run, as when the config file has problems.
+ * The harness picker and its test button. Reports the default harness's entry once the list loads, and `undefined`
+ * while no harness can run, as when the config file has problems.
  */
 export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelProps): ReactElement {
   const [list, setList] = useState<HarnessList>();
@@ -22,7 +25,9 @@ export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelP
         const loaded = await client.listHarnesses();
         if (!isCurrent) return;
         setList(loaded);
-        onHarnessChange('harnesses' in loaded ? loaded.defaultHarness : undefined);
+        onHarnessChange(
+          'harnesses' in loaded ? loaded.harnesses.find(({ name }) => name === loaded.defaultHarness) : undefined,
+        );
       } catch (error: unknown) {
         if (isCurrent) setListError(error);
       }
@@ -44,12 +49,13 @@ export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelP
     );
   }
 
-  const selected = list.harnesses.find((candidate) => candidate.name === harness);
+  const { harnesses } = list;
+  const selected = harnesses.find((candidate) => candidate.name === harness);
 
   function selectHarness(name: string): void {
     setTestResult(undefined);
     setTestError(undefined);
-    onHarnessChange(name);
+    onHarnessChange(harnesses.find((candidate) => candidate.name === name));
   }
 
   async function testHarness(name: string): Promise<void> {
@@ -76,7 +82,7 @@ export function HarnessPanel({ client, harness, onHarnessChange }: HarnessPanelP
           value={harness ?? ''}
           onChange={(event) => selectHarness(event.target.value)}
         >
-          {list.harnesses.map((candidate) => (
+          {harnesses.map((candidate) => (
             <option key={candidate.name} value={candidate.name}>
               {candidate.label}
             </option>
@@ -111,5 +117,5 @@ export interface HarnessPanelProps {
   /** The selected harness's name, or `undefined` before the list loads. */
   harness: string | undefined;
   /** Must keep a stable identity, because the list reloads whenever it changes. */
-  onHarnessChange: (harness: string | undefined) => void;
+  onHarnessChange: (harness: HarnessEntry | undefined) => void;
 }

@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@williamthorsen/telefactor": "workspace:*",
+    "@williamthorsen/terminal-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "zod": "catalog:"

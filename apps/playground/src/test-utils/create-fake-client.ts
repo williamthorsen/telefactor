@@ -1,7 +1,7 @@
 import type { HarnessList, Job, TelefactorClient } from '@williamthorsen/telefactor/client';
 
 /** A harness list with one testable and one untestable harness, `claude-code` being the default. */
-export const HARNESS_LIST: HarnessList = {
+export const HARNESS_LIST = {
   source: 'built-in',
   configPath: '/app/telefactor.config.json',
   hasConfigFile: false,
@@ -11,7 +11,7 @@ export const HARNESS_LIST: HarnessList = {
     { name: 'claude-code', label: 'Claude Code', command: ['claude', '-p'], testable: true, interactive: true },
     { name: 'codex', label: 'Codex', command: ['codex', 'exec'], testable: false, interactive: false },
   ],
-};
+} satisfies HarnessList;
 
 /** Builds a job in the given state, running on `claude-code` unless the overrides name another harness. */
 export function buildJob(overrides: Partial<Job> = {}): Job {

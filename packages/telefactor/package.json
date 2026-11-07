@@ -54,7 +54,7 @@
   "dependencies": {
     "@hono/node-server": "2.1.6",
     "@modelcontextprotocol/server": "2.4.0",
-    "@williamthorsen/terminal-react": "0.1.0",
+    "@williamthorsen/terminal-react": "catalog:",
     "@xterm/addon-serialize": "0.14.0",
     "@xterm/headless": "6.0.0",
     "hono": "4.13.16",
