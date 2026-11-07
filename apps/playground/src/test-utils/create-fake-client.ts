@@ -18,13 +18,20 @@ export function buildJob(overrides: Partial<Job> = {}): Job {
   return { id: 'job-1', harness: 'claude-code', status: 'running', ...overrides };
 }
 
-/** Creates a client whose methods reject unless the overrides replace them; `listHarnesses` returns `HARNESS_LIST`. */
+/**
+ * Creates a client whose request methods reject unless the overrides replace them; `listHarnesses` returns
+ * `HARNESS_LIST`.
+ */
 export function createFakeClient(overrides: Partial<TelefactorClient> = {}): TelefactorClient {
   return {
+    basePath: '/api/telefactor',
     cancelJob: () => rejectUnstubbed('cancelJob'),
+    closeTerminalSession: () => rejectUnstubbed('closeTerminalSession'),
+    createTerminalSession: () => rejectUnstubbed('createTerminalSession'),
     getJob: () => rejectUnstubbed('getJob'),
     listHarnesses: () => Promise.resolve(HARNESS_LIST),
     startJob: () => rejectUnstubbed('startJob'),
+    terminalSocketUrl: (id) => `ws://localhost/api/telefactor/terminal/sessions/${id}/socket`,
     testHarness: () => rejectUnstubbed('testHarness'),
     ...overrides,
   };
