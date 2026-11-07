@@ -111,10 +111,21 @@ describe(createJobs, () => {
 
 describe(expandArgv, () => {
   it('replaces every occurrence and keeps `$` sequences literal', () => {
-    expect(expandArgv(['run', 'say {prompt} twice: {prompt}'], "$& $' $1")).toStrictEqual([
+    expect(expandArgv(['run', 'say {prompt} twice: {prompt}'], { prompt: "$& $' $1" })).toStrictEqual([
       'run',
       "say $& $' $1 twice: $& $' $1",
     ]);
+  });
+
+  it('does not expand a placeholder inside a value', () => {
+    expect(expandArgv(['{prompt}', '{output}'], { prompt: 'write {output}', output: '/out.json' })).toStrictEqual([
+      'write {output}',
+      '/out.json',
+    ]);
+  });
+
+  it('keeps a placeholder that names no value, including an inherited property', () => {
+    expect(expandArgv(['{mcpUrl} {toString} {}'], { prompt: 'p' })).toStrictEqual(['{mcpUrl} {toString} {}']);
   });
 });
 

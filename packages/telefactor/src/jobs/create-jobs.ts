@@ -103,19 +103,27 @@ export function createJobs({ run, store }: { run: JobRun; store: JobStore }): Jo
       }, timeoutMs);
       runs.set(job.id, { controller, timer });
 
-      void execute(job.id, { harness: name, argv: expandArgv(command, prompt), stdin: prompt }, controller.signal);
+      void execute(job.id, { harness: name, argv: expandArgv(command, { prompt }), stdin: prompt }, controller.signal);
       return job;
     },
   };
 }
 
-/** Replaces every `{prompt}` in each argument with the prompt text. */
-export function expandArgv(command: readonly string[], prompt: string): string[] {
-  // A replacer function keeps `$` sequences in the prompt literal.
-  return command.map((argument) => argument.replaceAll('{prompt}', () => prompt));
+/**
+ * Replaces each `{name}` in each argument whose `name` is a key of `values` with its value, in one pass, so that a value
+ * is never expanded again. Any other `{…}` stays literal.
+ */
+export function expandArgv(command: readonly string[], values: Readonly<Record<string, string>>): string[] {
+  return command.map((argument) =>
+    argument.replaceAll(PLACEHOLDER_PATTERN, (placeholder, name: string) =>
+      Object.hasOwn(values, name) ? (values[name] ?? placeholder) : placeholder,
+    ),
+  );
 }
 
 // region | Helpers
+const PLACEHOLDER_PATTERN = /\{(\w+)\}/g;
+
 /** Describes a duration in whole minutes when it is one, else in seconds. */
 function describeDuration(milliseconds: number): string {
   if (milliseconds % 60_000 === 0) {
