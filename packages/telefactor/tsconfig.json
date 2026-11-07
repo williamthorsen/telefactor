@@ -4,6 +4,10 @@
   "compilerOptions": {
     // The package runs on Node, and nothing it imports pulls @types/node into the program on its own.
     "types": ["node"],
+    // The `./react` entry renders in the browser.
+    "jsx": "react-jsx",
+    // `lib` replaces rather than extends, so the ES year is repeated alongside the DOM libs.
+    "lib": ["DOM", "DOM.Iterable", "ES2025"],
     // `nmr-compile` rewrites these to relative specifiers on emit.
     "paths": {
       "#src/*": ["./src/*"],
