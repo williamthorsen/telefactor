@@ -4,7 +4,7 @@ export const TERMINAL_CLOSE_CODES = {
   exited: 4000,
   /** Another socket attached to the session. */
   replaced: 4001,
-  /** The session was ended by request or because the server closed. */
+  /** The session was ended through `close` or `closeAll`. */
   ended: 4003,
   /** The session does not exist. */
   unknown: 4004,

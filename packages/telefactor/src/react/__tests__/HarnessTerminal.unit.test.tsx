@@ -56,8 +56,8 @@ describe(HarnessTerminal, () => {
     [TERMINAL_CLOSE_CODES.exited, 'exited with code 0', 'The session ended: exited with code 0.'],
     [TERMINAL_CLOSE_CODES.replaced, 'The session was opened elsewhere.', 'This session is open in another tab.'],
     [TERMINAL_CLOSE_CODES.ended, 'The session was ended.', 'The session ended.'],
-    [TERMINAL_CLOSE_CODES.unknown, 'The session does not exist.', 'The session ended.'],
-    [1006, '', 'The session ended.'],
+    [TERMINAL_CLOSE_CODES.unknown, 'The session does not exist.', 'The session no longer exists.'],
+    [1006, '', 'The connection to the dev server closed.'],
   ])('reports a close with code %i and forgets the session', (code, reason, message) => {
     sessionStorage.setItem(STORAGE_KEY, 'stored');
     render(<HarnessTerminal client={createClient()} />);

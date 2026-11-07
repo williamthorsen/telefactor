@@ -96,7 +96,9 @@ export function HarnessTerminal({
 function describeClose(code: number, reason: string): string {
   if (code === TERMINAL_CLOSE_CODES.exited && reason !== '') return `The session ended: ${reason}.`;
   if (code === TERMINAL_CLOSE_CODES.replaced) return 'This session is open in another tab.';
-  return 'The session ended.';
+  if (code === TERMINAL_CLOSE_CODES.ended) return 'The session ended.';
+  if (code === TERMINAL_CLOSE_CODES.unknown) return 'The session no longer exists.';
+  return 'The connection to the dev server closed.';
 }
 
 /** Returns the tab's session storage, or `undefined` where the page cannot reach it. */

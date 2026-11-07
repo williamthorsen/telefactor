@@ -77,6 +77,25 @@ describe('telefactor terminal', () => {
     expect(await closed).toBe(TERMINAL_CLOSE_CODES.ended);
   });
 
+  it('closes the socket and ends the process group when the dev server closes', async () => {
+    const { id } = await startSession();
+    const socket = openSocket(id);
+    const received: string[] = [];
+    socket.on('message', (data) => {
+      received.push(readMessageText(data));
+    });
+    const closed = new Promise<number>((resolve) => socket.on('close', resolve));
+    await vi.waitFor(() => expect(received.join('')).toMatch(/ready pid=\d+/));
+    const pidText = /ready pid=(\d+)/.exec(received.join(''))?.[1];
+    if (pidText === undefined) throw new Error('The fixture did not report its grandchild.');
+
+    await state.server?.close();
+    state.server = undefined;
+
+    expect(await closed).toBe(1006);
+    await vi.waitFor(() => expect(isRunning(Number(pidText))).toBe(false), { timeout: 8000 });
+  });
+
   it("leaves Vite's HMR socket working beside the terminal socket", async () => {
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- Vite offers no other way to open its HMR socket.
     const token = state.server?.config.webSocketToken ?? '';
@@ -90,6 +109,15 @@ describe('telefactor terminal', () => {
 });
 
 // region | Helpers
+function isRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function openSocket(id: string): WebSocket {
   return new WebSocket(`${state.origin.replace('http', 'ws')}/api/telefactor/terminal/sessions/${id}/socket`, {
     headers: { origin: state.origin },
