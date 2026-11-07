@@ -1,10 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { type Job, type TelefactorClient, TelefactorRequestError } from '@williamthorsen/telefactor/client';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { buildJob, createFakeClient } from '#src/test-utils/create-fake-client.ts';
 
 import { JobPanel } from '../JobPanel.tsx';
+
+const POLL_INTERVAL_MS = 100;
 
 describe(JobPanel, () => {
   it('starts without a job', () => {
@@ -149,6 +151,39 @@ describe(JobPanel, () => {
     expect(screen.getByRole('button', { name: 'Run' })).toHaveAttribute('aria-disabled', 'false');
   });
 
+  describe('when a poll settles after the cancel resolves, before React commits the cancelled job', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('keeps the cancelled job and stops polling when the poll reports the job running', async () => {
+      const { getJob, settlePoll } = await renderPanelWithHeldPoll();
+
+      settlePoll.mockImplementation((inFlight) => inFlight.resolve(buildJob()));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await advance(POLL_INTERVAL_MS * 3);
+
+      expect(screen.getByRole('status')).toHaveTextContent('Cancelled on claude-code.');
+      expect(getJob).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the cancelled job and shows no error when the poll fails', async () => {
+      const { getJob, settlePoll } = await renderPanelWithHeldPoll();
+
+      settlePoll.mockImplementation((inFlight) => inFlight.reject(new TelefactorRequestError(500, 'Server error.')));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await advance(POLL_INTERVAL_MS * 3);
+
+      expect(screen.getByRole('status')).toHaveTextContent('Cancelled on claude-code.');
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(getJob).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("shows a rejected start's problems", async () => {
     const client = createFakeClient({
       startJob: () =>
@@ -165,6 +200,35 @@ describe(JobPanel, () => {
 });
 
 // region | Helpers
+/** Advances fake time inside `act`, so that React commits and runs its effects before the test asserts. */
+async function advance(ms: number): Promise<void> {
+  await act(() => vi.advanceTimersByTimeAsync(ms));
+}
+
+/**
+ * Renders a running job whose first poll is held open; `settlePoll` settles it one microtask after `cancelJob`
+ * resolves, which is before React can commit the cancelled job.
+ */
+async function renderPanelWithHeldPoll(): Promise<{
+  getJob: Mock<TelefactorClient['getJob']>;
+  settlePoll: Mock<(inFlight: PromiseWithResolvers<Job>) => void>;
+}> {
+  const inFlight = Promise.withResolvers<Job>();
+  const getJob = vi.fn<TelefactorClient['getJob']>(() => inFlight.promise);
+  const settlePoll = vi.fn<(held: PromiseWithResolvers<Job>) => void>();
+  const cancelJob = vi.fn(() => {
+    void Promise.resolve().then(() => settlePoll(inFlight));
+    return Promise.resolve(buildJob({ status: 'cancelled' }));
+  });
+  renderPanel(createFakeClient({ cancelJob, getJob, startJob: () => Promise.resolve(buildJob()) }), POLL_INTERVAL_MS);
+  run('Summarize README.md');
+  // Commit the started job, which arms the first poll, before advancing to it.
+  await advance(0);
+  await advance(POLL_INTERVAL_MS);
+  expect(getJob).toHaveBeenCalledTimes(1);
+  return { getJob, settlePoll };
+}
+
 function renderPanel(client: TelefactorClient, pollIntervalMs = 0): void {
   render(<JobPanel client={client} harness="claude-code" pollIntervalMs={pollIntervalMs} />);
 }

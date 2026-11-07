@@ -17,6 +17,8 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   const runButton = useRef<HTMLButtonElement>(null);
   const promptField = useRef<HTMLTextAreaElement>(null);
   const shouldRestoreFocus = useRef(false);
+  // A settled cancel stops the poll at once; the effect's cleanup would run only after React commits.
+  const stopPolling = useRef<() => void>(undefined);
 
   // Cancel unmounts when the job stops running; keep keyboard focus in the form.
   useEffect(() => {
@@ -43,10 +45,12 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
       }
     }
     const timer = setTimeout(() => void poll(job.id), pollIntervalMs);
-    return () => {
+    function stop(): void {
       isCurrent = false;
       clearTimeout(timer);
-    };
+    }
+    stopPolling.current = stop;
+    return stop;
   }, [client, error, job, pollIntervalMs]);
 
   /** Records whether Cancel has focus, ahead of a state change that unmounts it. */
@@ -71,9 +75,11 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   async function cancelJob(id: string): Promise<void> {
     try {
       const cancelled = await client.cancelJob(id);
+      stopPolling.current?.();
       noteCancelFocus();
       setJob(cancelled);
     } catch (cancelError: unknown) {
+      stopPolling.current?.();
       noteCancelFocus();
       setError(cancelError);
     }
