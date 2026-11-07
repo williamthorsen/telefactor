@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { BUILT_IN_HARNESSES } from '../built-in-harnesses.ts';
-import { BUILT_IN_SETTINGS, findHarness, harnessConfigSchema } from '../settings-schema.ts';
+import { buildHarnessConfigSchema, BUILT_IN_SETTINGS, findHarness, harnessConfigSchema } from '../settings-schema.ts';
 
 describe('harnessConfigSchema', () => {
   it('applies the built-in harnesses and defaults to an empty config', () => {
@@ -15,7 +16,12 @@ describe('harnessConfigSchema', () => {
   it('replaces the built-ins with the harnesses that a config defines', () => {
     const parsed = harnessConfigSchema.parse({ harnesses: { mine: { command: ['mine'] } } });
 
-    expect(parsed).toStrictEqual({ default: 'mine', timeoutMinutes: 10, harnesses: { mine: { command: ['mine'] } } });
+    expect(parsed).toStrictEqual({
+      default: 'mine',
+      timeoutMinutes: 10,
+      harnesses: { mine: { command: ['mine'] } },
+      app: {},
+    });
   });
 
   it('requires a default when several harnesses are defined', () => {
@@ -57,6 +63,41 @@ describe('harnessConfigSchema', () => {
     ['MCP arguments without an interactive command', { harnesses: { a: { command: ['a'], mcpArgs: ['--mcp'] } } }],
   ])('rejects %s', (_case, config) => {
     expect(harnessConfigSchema.safeParse(config).success).toBe(false);
+  });
+});
+
+describe(buildHarnessConfigSchema, () => {
+  const appConfigSchema = z.object({ promptsDirectory: z.string().min(1).default('prompts') });
+
+  it("parses the app's keys into `app`, applying their defaults", () => {
+    const schema = buildHarnessConfigSchema(appConfigSchema);
+
+    expect(schema.parse({ promptsDirectory: 'mine' }).app).toStrictEqual({ promptsDirectory: 'mine' });
+    expect(schema.parse({}).app).toStrictEqual({ promptsDirectory: 'prompts' });
+  });
+
+  it('reports a key that neither the package nor the app defines', () => {
+    const result = buildHarnessConfigSchema(appConfigSchema).safeParse({ promptDirectory: 'mine' });
+
+    expect(result.error?.issues).toMatchObject([{ code: 'unrecognized_keys', keys: ['promptDirectory'] }]);
+  });
+
+  it('reports an invalid app value at its key', () => {
+    const result = buildHarnessConfigSchema(appConfigSchema).safeParse({ promptsDirectory: '' });
+
+    expect(result.error?.issues).toMatchObject([{ path: ['promptsDirectory'] }]);
+  });
+
+  it('reports an invalid app value and an invalid default together', () => {
+    const result = buildHarnessConfigSchema(appConfigSchema).safeParse({ promptsDirectory: '', default: 'none' });
+
+    expect(result.error?.issues.map((issue) => issue.path)).toStrictEqual([['promptsDirectory'], ['default']]);
+  });
+
+  it('throws for an app key that the package defines', () => {
+    expect(() => buildHarnessConfigSchema(z.object({ timeoutMinutes: z.number() }))).toThrow(
+      "The app config may not define timeoutMinutes, which the package's config defines.",
+    );
   });
 });
 

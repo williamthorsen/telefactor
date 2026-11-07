@@ -23,11 +23,14 @@ export {
   type HarnessSource,
   readEnvironmentCommand,
   readHarnessSettings,
+  type ReadHarnessSettingsOptions,
 } from './harness/read-settings.ts';
 export { HARNESS_TEST_TIMEOUT_MS, runHarnessTest } from './harness/run-harness-test.ts';
 export {
+  buildHarnessConfigSchema,
   BUILT_IN_SETTINGS,
   DEFAULT_TIMEOUT_MINUTES,
+  type EmptyAppConfig,
   findHarness,
   type Harness,
   harnessConfigSchema,

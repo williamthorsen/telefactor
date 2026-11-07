@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { describe, expect, it, onTestFinished } from 'vitest';
+import { z } from 'zod';
 
 import { HARNESS_COMMAND_VARIABLE, readEnvironmentCommand, readHarnessSettings } from '../read-settings.ts';
 import { BUILT_IN_SETTINGS } from '../settings-schema.ts';
@@ -67,6 +68,34 @@ describe(readHarnessSettings, () => {
     });
   });
 
+  it("returns the app's values from the file", async () => {
+    const { configPath } = await createConfigPath();
+    await writeFile(configPath, JSON.stringify({ promptsDirectory: 'mine' }));
+
+    const result = await readHarnessSettings({ env: {}, configPath, config: APP_CONFIG_SCHEMA });
+
+    expect(result).toMatchObject({ ok: true, source: 'built-in', settings: { app: { promptsDirectory: 'mine' } } });
+  });
+
+  it("applies the app's defaults when there is no file", async () => {
+    const { configPath } = await createConfigPath();
+    const result = await readHarnessSettings({ env: {}, configPath, config: APP_CONFIG_SCHEMA });
+
+    expect(result).toMatchObject({
+      ok: true,
+      hasConfigFile: false,
+      settings: { app: { promptsDirectory: 'prompts' } },
+    });
+  });
+
+  it('reports a required app key when there is no file', async () => {
+    const { configPath } = await createConfigPath();
+    const result = await readHarnessSettings({ env: {}, configPath, config: z.object({ name: z.string() }) });
+
+    expect(result).toMatchObject({ ok: false, problems: [{ path: 'name' }] });
+    expect(result.ok ? '' : result.problems[0]?.message).toContain('which does not exist');
+  });
+
   it('reports invalid JSON', async () => {
     const { configPath } = await createConfigPath();
     await writeFile(configPath, '{');
@@ -111,6 +140,8 @@ describe(readEnvironmentCommand, () => {
 });
 
 // region | Helpers
+const APP_CONFIG_SCHEMA = z.object({ promptsDirectory: z.string().default('prompts') });
+
 /** Creates a temporary directory, removed after the test, and returns it with a config path inside it. */
 async function createConfigPath(): Promise<{ directory: string; configPath: string }> {
   const directory = await mkdtemp(path.join(tmpdir(), 'telefactor-settings-'));

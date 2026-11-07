@@ -5,7 +5,12 @@ import { z } from 'zod';
 import { describeError } from '#src/portable/describe-error.ts';
 import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 
-import { BUILT_IN_SETTINGS, harnessConfigSchema, type HarnessSettings } from './settings-schema.ts';
+import {
+  buildHarnessConfigSchema,
+  type EmptyAppConfig,
+  harnessConfigSchema,
+  type HarnessSettings,
+} from './settings-schema.ts';
 
 /** The environment variable whose JSON argv replaces every other harness with one, when the options name none. */
 export const HARNESS_COMMAND_VARIABLE = 'TELEFACTOR_HARNESS_COMMAND';
@@ -16,50 +21,43 @@ export const ENVIRONMENT_HARNESS_NAME = 'environment';
 export type HarnessSource = 'built-in' | 'environment' | 'file';
 
 /** The resolved settings and where their harnesses come from, or the problems of a config file that cannot be used. */
-export type HarnessSettingsResult =
-  | { ok: true; source: HarnessSource; configPath: string; hasConfigFile: boolean; settings: HarnessSettings }
+export type HarnessSettingsResult<A = EmptyAppConfig> =
+  | { ok: true; source: HarnessSource; configPath: string; hasConfigFile: boolean; settings: HarnessSettings<A> }
   | { ok: false; source: 'file'; configPath: string; problems: Problem[] };
 
-type ConfigFileRead =
-  | { ok: true; file: { settings: HarnessSettings; definesHarnesses: boolean } | undefined }
+export interface ReadHarnessSettingsOptions {
+  env: Readonly<Record<string, string | undefined>>;
+  configPath: string;
+  /** The environment variable that defines a harness; defaults to `TELEFACTOR_HARNESS_COMMAND`. */
+  commandVariable?: string;
+}
+
+type ConfigFileRead<A> =
+  | { ok: true; settings: HarnessSettings<A>; hasConfigFile: boolean; definesHarnesses: boolean }
   | { ok: false; problems: Problem[] };
+
+/** A config schema built by `buildHarnessConfigSchema`, whose output holds the app's values under `app`. */
+type ConfigSchema<A> = z.ZodType<HarnessSettings<A>>;
 
 const environmentCommandSchema = z.array(z.string()).min(1);
 
 /**
  * Resolves the harness settings from the config file, else the built-in settings. When the environment variable is
- * set, its harness replaces the harnesses that either defines, and the file's timeout still applies. Throws on a
- * malformed variable.
+ * set, its harness replaces the harnesses that either defines, and the file's timeout still applies. With an app config
+ * schema, the file may hold the app's keys too, and their values, with their defaults when the file is absent, are
+ * returned under `settings.app`. Throws on a malformed variable, and on an app config schema that names a package key.
  */
-export async function readHarnessSettings({
-  env,
-  configPath,
-  commandVariable = HARNESS_COMMAND_VARIABLE,
-}: {
-  env: Readonly<Record<string, string | undefined>>;
-  configPath: string;
-  /** The environment variable that defines a harness; defaults to `TELEFACTOR_HARNESS_COMMAND`. */
-  commandVariable?: string;
-}): Promise<HarnessSettingsResult> {
-  const command = readEnvironmentCommand(env, commandVariable);
-  const read = await readConfigFile(configPath);
-  if (!read.ok) return { ok: false, source: 'file', configPath, problems: read.problems };
-
-  const settings = read.file?.settings ?? BUILT_IN_SETTINGS;
-  const common = { configPath, hasConfigFile: read.file !== undefined };
-  if (command !== undefined) {
-    return {
-      ok: true,
-      ...common,
-      source: 'environment',
-      settings: {
-        ...settings,
-        default: ENVIRONMENT_HARNESS_NAME,
-        harnesses: { [ENVIRONMENT_HARNESS_NAME]: { command } },
-      },
-    };
-  }
-  return { ok: true, ...common, source: read.file?.definesHarnesses === true ? 'file' : 'built-in', settings };
+export function readHarnessSettings(options: ReadHarnessSettingsOptions): Promise<HarnessSettingsResult>;
+export function readHarnessSettings<S extends z.ZodObject>(
+  options: ReadHarnessSettingsOptions & { config: S },
+): Promise<HarnessSettingsResult<z.output<S>>>;
+export function readHarnessSettings(
+  options: ReadHarnessSettingsOptions & { config?: z.ZodObject },
+): Promise<HarnessSettingsResult<unknown>> {
+  const { config, ...rest } = options;
+  return config === undefined
+    ? readSettingsWithSchema(rest, harnessConfigSchema)
+    : readSettingsWithSchema(rest, buildHarnessConfigSchema(config));
 }
 
 /** Returns the argv that the environment variable sets, if any; throws on a malformed value. */
@@ -84,6 +82,32 @@ export function readEnvironmentCommand(
 }
 
 // region | Helpers
+/** Reads the settings with a config schema that has already been built. */
+async function readSettingsWithSchema<A>(
+  { env, configPath, commandVariable = HARNESS_COMMAND_VARIABLE }: ReadHarnessSettingsOptions,
+  schema: ConfigSchema<A>,
+): Promise<HarnessSettingsResult<A>> {
+  const command = readEnvironmentCommand(env, commandVariable);
+  const read = await readConfigFile(configPath, schema);
+  if (!read.ok) return { ok: false, source: 'file', configPath, problems: read.problems };
+
+  const { settings, hasConfigFile, definesHarnesses } = read;
+  if (command !== undefined) {
+    return {
+      ok: true,
+      configPath,
+      hasConfigFile,
+      source: 'environment',
+      settings: {
+        ...settings,
+        default: ENVIRONMENT_HARNESS_NAME,
+        harnesses: { [ENVIRONMENT_HARNESS_NAME]: { command } },
+      },
+    };
+  }
+  return { ok: true, configPath, hasConfigFile, source: definesHarnesses ? 'file' : 'built-in', settings };
+}
+
 function definesHarnesses(value: unknown): boolean {
   return typeof value === 'object' && value !== null && 'harnesses' in value;
 }
@@ -92,13 +116,13 @@ function isMissingFile(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
 }
 
-/** Reads and validates the config file; `file` is absent when the file does not exist. */
-async function readConfigFile(configPath: string): Promise<ConfigFileRead> {
+/** Reads and validates the config file, validating an empty object when the file does not exist. */
+async function readConfigFile<A>(configPath: string, schema: ConfigSchema<A>): Promise<ConfigFileRead<A>> {
   let text: string;
   try {
     text = await readFile(configPath, 'utf8');
   } catch (error) {
-    if (isMissingFile(error)) return { ok: true, file: undefined };
+    if (isMissingFile(error)) return parseConfig(configPath, schema, {}, false);
     return {
       ok: false,
       problems: [{ path: '', message: `${configPath} could not be read: ${describeError(error)}.` }],
@@ -114,16 +138,27 @@ async function readConfigFile(configPath: string): Promise<ConfigFileRead> {
       problems: [{ path: '', message: `${configPath} is not valid JSON: ${describeError(error)}.` }],
     };
   }
-  const parsed = harnessConfigSchema.safeParse(value);
+  return parseConfig(configPath, schema, value, true);
+}
+
+/** Validates a config file's value, or the empty object that stands for a missing file. */
+function parseConfig<A>(
+  configPath: string,
+  schema: ConfigSchema<A>,
+  value: unknown,
+  hasConfigFile: boolean,
+): ConfigFileRead<A> {
+  const parsed = schema.safeParse(value);
   if (!parsed.success) {
+    const location = hasConfigFile ? configPath : `${configPath}, which does not exist`;
     return {
       ok: false,
       problems: parsed.error.issues.map((issue) => ({
         path: formatIssuePath(issue.path),
-        message: `${issue.message} in ${configPath}.`,
+        message: `${issue.message} in ${location}.`,
       })),
     };
   }
-  return { ok: true, file: { settings: parsed.data, definesHarnesses: definesHarnesses(value) } };
+  return { ok: true, settings: parsed.data, hasConfigFile, definesHarnesses: definesHarnesses(value) };
 }
 // endregion | Helpers
