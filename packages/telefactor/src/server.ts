@@ -28,8 +28,8 @@ export {
 export { HARNESS_TEST_TIMEOUT_MS, runHarnessTest } from './harness/run-harness-test.ts';
 export {
   buildHarnessConfigSchema,
-  type BuiltInHarnesses,
   BUILT_IN_SETTINGS,
+  type BuiltInHarnesses,
   DEFAULT_TIMEOUT_MINUTES,
   type EmptyAppConfig,
   findHarness,
