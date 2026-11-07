@@ -79,6 +79,19 @@ describe(HarnessTerminal, () => {
     expect(client.closeTerminalSession).toHaveBeenCalledWith('stored');
   });
 
+  it('offers no session while one cannot start, and still shows a running one', () => {
+    render(<HarnessTerminal client={createClient()} unavailableReason="No recipe." />);
+
+    expect(screen.getByRole('button', { name: 'Start session' })).toHaveProperty('disabled', true);
+    expect(screen.getByText('No recipe.')).toBeDefined();
+    cleanup();
+    sessionStorage.setItem(STORAGE_KEY, 'stored');
+    render(<HarnessTerminal client={createClient()} unavailableReason="No recipe." />);
+
+    expect(screen.getByTestId('terminal')).toBeDefined();
+    expect(screen.queryByText('No recipe.')).toBeNull();
+  });
+
   it('shows why a session could not start', async () => {
     const client = createClient({
       createTerminalSession: vi.fn(() =>

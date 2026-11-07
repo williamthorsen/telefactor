@@ -9,6 +9,8 @@ export interface HarnessTerminalProps {
   client: TelefactorClient;
   /** The harness to start; the settings' default when omitted. */
   harness?: string | undefined;
+  /** Why no session can start, such as a harness without an interactive command; disables Start session. */
+  unavailableReason?: string | undefined;
   theme?: ITheme | undefined;
   className?: string | undefined;
 }
@@ -18,7 +20,13 @@ export interface HarnessTerminalProps {
  * session's id, so that a reload reattaches to the running session. The terminal's height is the custom property
  * `--telefactor-terminal-height`, `20rem` by default.
  */
-export function HarnessTerminal({ client, harness, theme, className }: HarnessTerminalProps): ReactElement {
+export function HarnessTerminal({
+  client,
+  harness,
+  unavailableReason,
+  theme,
+  className,
+}: HarnessTerminalProps): ReactElement {
   type View = { kind: 'idle'; message?: string } | { kind: 'starting' } | { kind: 'running'; id: string };
   const storageKey = `telefactor:terminal:${client.basePath}`;
   const [view, setView] = useState<View>(() => {
@@ -59,11 +67,16 @@ export function HarnessTerminal({ client, harness, theme, className }: HarnessTe
             End session
           </button>
         ) : (
-          <button type="button" disabled={view.kind === 'starting'} onClick={() => void startSession()}>
+          <button
+            type="button"
+            disabled={view.kind === 'starting' || unavailableReason !== undefined}
+            onClick={() => void startSession()}
+          >
             Start session
           </button>
         )}
       </div>
+      {view.kind !== 'running' && unavailableReason !== undefined && <p>{unavailableReason}</p>}
       <p role="status">{view.kind === 'idle' ? view.message : undefined}</p>
       {view.kind === 'running' && (
         <div style={{ height: 'var(--telefactor-terminal-height, 20rem)' }}>
