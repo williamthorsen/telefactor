@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,7 +13,7 @@ const terminalProps = vi.hoisted(() => {
   return props;
 });
 
-// xterm needs a canvas, which jsdom lacks; the mock records what the component passes to it.
+// xterm needs a canvas, which happy-dom lacks; the mock records what the component passes to it.
 vi.mock('@williamthorsen/terminal-react', () => ({
   Terminal: ({ url, onClose }: { url: string; onClose?: (event: CloseEvent) => void }) => {
     terminalProps.url = url;
