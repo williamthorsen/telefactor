@@ -8,10 +8,18 @@ import type { ContractImplementation } from '#src/contract/implement-contract.ts
 import { readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { runHarnessTest } from '#src/harness/run-harness-test.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
-import { isLoopbackRequest, isSameOriginRequest, readRequestHost } from '#src/http/request-guards.ts';
+import {
+  isAllowedUpgradeRequest,
+  isLoopbackRequest,
+  isSameOriginRequest,
+  readRequestHost,
+} from '#src/http/request-guards.ts';
 import { createHarnessRun } from '#src/jobs/create-harness-run.ts';
 import { createJobs } from '#src/jobs/create-jobs.ts';
 import { createInMemoryJobStore } from '#src/jobs/in-memory-job-store.ts';
+import { createTerminalSessions } from '#src/terminal/create-terminal-sessions.ts';
+import { createTerminalUpgradeHandler } from '#src/terminal/handle-terminal-upgrade.ts';
+import { loadNodePty } from '#src/terminal/load-node-pty.ts';
 
 /** The path under which the plugin mounts the routes when the options name none. */
 export const DEFAULT_BASE_PATH = '/api/telefactor';
@@ -31,10 +39,10 @@ export interface TelefactorPluginOptions {
 }
 
 /**
- * Creates the Vite plugin that serves the harness and job routes on the dev server, and with a contract, its state,
- * actions, and MCP endpoint. It stops the server on a malformed `TELEFACTOR_HARNESS_COMMAND`, re-reads the config file
- * on each request that needs it, logs the MCP endpoint's URL once the server listens, and cancels running jobs when the
- * server closes.
+ * Creates the Vite plugin that serves the harness, job, and terminal routes and the terminal socket on the dev server,
+ * and with a contract, its state, actions, and MCP endpoint. It stops the server on a malformed
+ * `TELEFACTOR_HARNESS_COMMAND`, re-reads the config file on each request that needs it, logs the MCP endpoint's URL
+ * once the server listens, and cancels running jobs and ends terminal sessions when the server closes.
  */
 export function telefactor({
   basePath = DEFAULT_BASE_PATH,
@@ -56,9 +64,26 @@ export function telefactor({
         run: createHarnessRun({ workingDirectory: resolvedWorkingDirectory }),
         store: createInMemoryJobStore(),
       });
+      const sessions = createTerminalSessions({ loadPty: loadNodePty, workingDirectory: resolvedWorkingDirectory });
+      const { httpServer } = server;
       const app = createTelefactorApp<{ Bindings: Http2Bindings | HttpBindings }>({
         jobs,
         ...(contract !== undefined && { store: createStateStore(contract) }),
+        terminal: {
+          sessions,
+          resolveMcpUrl: () => {
+            if (httpServer === null) {
+              return {
+                ok: false,
+                error: "The terminal needs Vite's own HTTP server, which middleware mode does not start.",
+              };
+            }
+            if (contract === undefined) return { ok: true, mcpUrl: undefined };
+            const local = server.resolvedUrls?.local[0];
+            if (local === undefined) return { ok: false, error: 'The dev server is not listening yet.' };
+            return { ok: true, mcpUrl: `${new URL(local).origin}${basePath}/mcp` };
+          },
+        },
         readSettings: () => readHarnessSettings({ env: process.env, configPath: resolvedConfigPath }),
         runTest: (argv, signal) => runHarnessTest({ argv, workingDirectory: resolvedWorkingDirectory, signal }),
         isAllowed: (context) =>
@@ -85,8 +110,13 @@ export function telefactor({
           server.config.logger.info(`telefactor MCP endpoint: ${new URL(local).origin}${basePath}/mcp`);
         });
       }
-      server.httpServer?.once('close', () => {
+      httpServer?.on(
+        'upgrade',
+        createTerminalUpgradeHandler({ basePath, sessions, isAllowed: isAllowedUpgradeRequest }),
+      );
+      httpServer?.once('close', () => {
         void jobs.cancelAll();
+        sessions.closeAll();
       });
     },
   };

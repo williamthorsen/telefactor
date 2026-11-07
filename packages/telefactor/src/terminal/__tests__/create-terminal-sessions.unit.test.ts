@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
-import { createTerminalSessions, TERMINAL_CLOSE_CODES } from '../create-terminal-sessions.ts';
+import { createTerminalSessions } from '../create-terminal-sessions.ts';
+import { TERMINAL_CLOSE_CODES } from '../terminal-close-codes.ts';
 import { createFakeSpawnPty } from '../test-utils/create-fake-pty.ts';
 import { createFakeSocket } from '../test-utils/create-fake-socket.ts';
 
@@ -154,7 +155,7 @@ describe(createTerminalSessions, () => {
     ptys[0]?.emitExit({ exitCode: 3 });
 
     expect(socket.closes).toStrictEqual([{ code: TERMINAL_CLOSE_CODES.exited, reason: 'exited with code 3' }]);
-    expect(sessions.close(id)).toBe(false);
+    expect(sessions.close(id)).toBeUndefined();
   });
 
   it('names the signal that ended the process', async () => {
@@ -176,7 +177,7 @@ describe(createTerminalSessions, () => {
     sessions.attach(id, socket);
     const pid = ptys[0]?.pid ?? 0;
 
-    expect(sessions.close(id)).toBe(true);
+    expect(sessions.close(id)).toStrictEqual({ id, harness: 'a' });
     expect(killSpy.mock.calls).toStrictEqual([[-pid, 'SIGHUP']]);
     vi.advanceTimersByTime(100);
 
@@ -194,8 +195,8 @@ describe(createTerminalSessions, () => {
 
     sessions.closeAll();
 
-    expect(sessions.close(first.id)).toBe(false);
-    expect(sessions.close(second.id)).toBe(false);
+    expect(sessions.close(first.id)).toBeUndefined();
+    expect(sessions.close(second.id)).toBeUndefined();
   });
 });
 

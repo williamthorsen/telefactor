@@ -10,10 +10,23 @@ export const startJobRequestSchema = z.object({
 
 export type StartJobRequest = z.infer<typeof startJobRequestSchema>;
 
+/** The body of `POST /terminal/sessions`; `harness` names the harness to run, the default harness when omitted. */
+export const startTerminalSessionRequestSchema = z.object({ harness: z.string().optional() });
+
+export type StartTerminalSessionRequest = z.infer<typeof startTerminalSessionRequestSchema>;
+
+/**
+ * The body of a `201` from `POST /terminal/sessions` and of a `200` from `DELETE /terminal/sessions/:id`. `id` is the
+ * session's credential: Whoever holds it can attach to the session's socket.
+ */
+export const terminalSessionSchema = z.object({ id: z.string(), harness: z.string() });
+
+export type TerminalSessionInfo = z.infer<typeof terminalSessionSchema>;
+
 /** The body of a `400` response. */
 export const problemsBodySchema = z.object({ problems: z.array(problemSchema) });
 
-/** The body of a `403`, `404`, `409`, or `415` response. */
+/** The body of a `403`, `404`, `409`, `415`, `500`, or `503` response. */
 export const errorBodySchema = z.object({ error: z.string() });
 
 /**

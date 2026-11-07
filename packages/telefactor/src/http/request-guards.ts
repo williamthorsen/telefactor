@@ -1,3 +1,5 @@
+import type { IncomingMessage } from 'node:http';
+
 const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
 // The `Host` check stops a DNS-rebinding page in the user's browser, whose requests arrive from a loopback address.
@@ -5,6 +7,23 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 // `none` marks a request that the user started, such as a URL typed into the address bar.
 const SAME_ORIGIN_FETCH_SITES = new Set(['none', 'same-origin']);
+
+/**
+ * Applies the loopback and same-origin guards to a request that reaches the server outside the routes, such as a
+ * WebSocket upgrade.
+ */
+export function isAllowedUpgradeRequest(request: IncomingMessage): boolean {
+  const host = readRequestHost(request.headers.host, request);
+  const scheme = 'encrypted' in request.socket ? 'https' : 'http';
+  return (
+    isLoopbackRequest({ host, remoteAddress: request.socket.remoteAddress }) &&
+    isSameOriginRequest({
+      origin: request.headers.origin,
+      secFetchSite: readHeader(request, 'sec-fetch-site'),
+      url: `${scheme}://${host ?? 'localhost'}${request.url ?? '/'}`,
+    })
+  );
+}
 
 /** Reports whether a request comes from a loopback address and names a loopback host. */
 export function isLoopbackRequest({
@@ -43,3 +62,10 @@ export function readRequestHost(hostHeader: string | undefined, incoming: object
   if (hostHeader !== undefined) return hostHeader;
   return 'authority' in incoming && typeof incoming.authority === 'string' ? incoming.authority : undefined;
 }
+
+// region | Helpers
+function readHeader(request: IncomingMessage, name: string): string | undefined {
+  const value = request.headers[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+// endregion | Helpers

@@ -6,17 +6,7 @@ import xtermHeadless from '@xterm/headless';
 
 import { KILL_GRACE_MS, killProcessGroup } from '#src/process/kill-process-group.ts';
 
-/** The WebSocket close codes with which a session's socket ends, each with a reason that the page can show. */
-export const TERMINAL_CLOSE_CODES = {
-  /** The process exited; the reason describes the exit. */
-  exited: 4000,
-  /** Another socket attached to the session. */
-  replaced: 4001,
-  /** The session was ended by request or because the server closed. */
-  ended: 4003,
-  /** The session does not exist. */
-  unknown: 4004,
-} as const;
+import { TERMINAL_CLOSE_CODES } from './terminal-close-codes.ts';
 
 /** The size of a new session's grid, which the client's first resize replaces. */
 const INITIAL_SIZE = { cols: 80, rows: 24 };
@@ -73,8 +63,8 @@ export interface TerminalSessions {
   create(argv: readonly string[], harness: string): Promise<TerminalSession>;
   /** Attaches a socket, replacing any attached one, or closes it with `unknown` when the session does not exist. */
   attach(id: string, socket: TerminalSocket): TerminalAttachment | undefined;
-  /** Ends the session's process group; returns false when the session does not exist. */
-  close(id: string): boolean;
+  /** Ends the session's process group; returns `undefined` when the session does not exist. */
+  close(id: string): TerminalSession | undefined;
   closeAll(): void;
 }
 
@@ -99,15 +89,15 @@ export function createTerminalSessions({
   const sessions = new Map<string, Session>();
   let spawnPtyPromise: Promise<SpawnPty> | undefined;
 
-  function close(id: string): boolean {
+  function close(id: string): TerminalSession | undefined {
     const session = sessions.get(id);
-    if (session === undefined) return false;
+    if (session === undefined) return undefined;
     sessions.delete(id);
     session.client?.socket.close(TERMINAL_CLOSE_CODES.ended, 'The session was ended.');
     session.client = undefined;
     killProcessGroup(session.pty.pid, 'SIGHUP');
     setTimeout(() => killProcessGroup(session.pty.pid, 'SIGKILL'), killGraceMs).unref();
-    return true;
+    return { id: session.id, harness: session.harness };
   }
 
   return {

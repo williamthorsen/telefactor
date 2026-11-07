@@ -2,8 +2,9 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createTerminalSessions, TERMINAL_CLOSE_CODES, type TerminalSessions } from '../create-terminal-sessions.ts';
+import { createTerminalSessions, type TerminalSessions } from '../create-terminal-sessions.ts';
 import { loadNodePty } from '../load-node-pty.ts';
+import { TERMINAL_CLOSE_CODES } from '../terminal-close-codes.ts';
 import { createFakeSocket, type FakeSocket } from '../test-utils/create-fake-socket.ts';
 
 const FIXTURE = path.join(import.meta.dirname, 'fixtures', 'interactive.mjs');
