@@ -82,6 +82,24 @@ describe(NotesPanel, () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No note has the id "a".');
   });
 
+  it('announces a change that the agent makes', () => {
+    const { client, push } = createFakeNotesClient();
+    render(<NotesPanel client={client} />);
+
+    act(() => push({ ...NOTES, change: { action: 'selectNote', origin: 'agent' } }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('The agent selected Second.');
+  });
+
+  it('does not announce a change that the page makes', () => {
+    const { client, push } = createFakeNotesClient();
+    render(<NotesPanel client={client} />);
+
+    act(() => push({ ...NOTES, change: { action: 'addNote', origin: 'page' } }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('');
+  });
+
   it('unsubscribes when it unmounts', () => {
     const unsubscribe = vi.fn();
     const { client } = createFakeNotesClient({ subscribe: () => unsubscribe });

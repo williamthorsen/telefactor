@@ -1,13 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createFakeClient, HARNESS_LIST } from '#src/test-utils/create-fake-client.ts';
 
 import { TerminalPanel } from '../TerminalPanel.tsx';
-
-// xterm needs a canvas, which jsdom lacks.
-vi.mock('@williamthorsen/terminal-react', () => ({ Terminal: () => <div /> }));
-vi.mock('@williamthorsen/terminal-react/styles.css', () => ({}));
 
 const [claudeCode, codex] = HARNESS_LIST.harnesses;
 

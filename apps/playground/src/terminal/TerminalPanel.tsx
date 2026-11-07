@@ -1,8 +1,6 @@
-import type { TelefactorClient } from '@williamthorsen/telefactor/client';
+import type { HarnessEntry, TelefactorClient } from '@williamthorsen/telefactor/client';
 import { HarnessTerminal } from '@williamthorsen/telefactor/react';
 import type { ReactElement } from 'react';
-
-import type { HarnessEntry } from '#src/harness/HarnessPanel.tsx';
 
 import '@williamthorsen/terminal-react/styles.css';
 

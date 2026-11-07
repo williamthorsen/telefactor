@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { StateChange } from '#src/contract/create-state-store.ts';
 import type {
   ActionDefinitions,
   ActionInput,
@@ -15,10 +16,14 @@ import { TelefactorRequestError } from './telefactor-request-error.ts';
 /** The delay after which a dropped state stream reconnects. */
 export const RECONNECT_DELAY_MS = 1000;
 
-/** The session state with the number of commits that produced it, which orders snapshots read from different calls. */
+/**
+ * The session state with the number of commits that produced it, which orders snapshots read from different calls, and
+ * the change that made the latest commit, absent at version 0.
+ */
 export interface ContractSnapshot<C extends Contract> {
   version: number;
   state: ContractState<C>;
+  change?: StateChange;
 }
 
 /** Reads and changes the session state that the plugin serves for one contract. */
@@ -45,8 +50,9 @@ export function createContractClient<S extends z.ZodType, A extends ActionDefini
   const envelopeSchema = stateSnapshotSchema(z.unknown());
 
   function parseSnapshot(value: unknown): ContractSnapshot<Contract<S, A>> {
-    const { version, state } = envelopeSchema.parse(value);
-    return { version, state: z.parse(contract.state, state) };
+    const { version, state, change } = envelopeSchema.parse(value);
+    const parsedState = z.parse(contract.state, state);
+    return change === undefined ? { version, state: parsedState } : { version, state: parsedState, change };
   }
 
   return {

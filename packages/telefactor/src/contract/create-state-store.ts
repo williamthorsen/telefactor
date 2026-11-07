@@ -4,10 +4,23 @@ import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 import { type Contract, getInputSchema, isActionName } from './define-contract.ts';
 import type { ContractImplementation } from './implement-contract.ts';
 
-/** The session state with the number of commits that produced it, so that a reader can discard an older snapshot. */
+/** Where a commit came from: `agent` for an MCP tool call, `page` for a route call. */
+export type ChangeOrigin = 'agent' | 'page';
+
+/** The action that produced a commit, and where its call came from. */
+export interface StateChange {
+  action: string;
+  origin: ChangeOrigin;
+}
+
+/**
+ * The session state with the number of commits that produced it, so that a reader can discard an older snapshot, and
+ * the change that made the latest commit, absent at version 0.
+ */
 export interface StateSnapshot {
   version: number;
   state: unknown;
+  change?: StateChange;
 }
 
 /**
@@ -27,9 +40,9 @@ export interface StateStore {
   readonly contract: Contract;
   read(): StateSnapshot;
   /** Runs an action after every call already queued, and commits its result only when the state schema accepts it. */
-  run(name: string, rawInput: unknown): Promise<RunOutcome>;
+  run(name: string, rawInput: unknown, origin: ChangeOrigin): Promise<RunOutcome>;
   /** Runs an action as `run` does, with input that the action's own schema has already parsed, as an MCP server does. */
-  runParsed(name: string, parsedInput: unknown): Promise<RunOutcome>;
+  runParsed(name: string, parsedInput: unknown, origin: ChangeOrigin): Promise<RunOutcome>;
   /** Calls the listener with each committed snapshot; returns a function that stops the calls. */
   subscribe(listener: (snapshot: StateSnapshot) => void): () => void;
 }
@@ -40,7 +53,7 @@ export function createStateStore({ contract, initialState, handlers }: ContractI
   const listeners = new Set<(snapshot: StateSnapshot) => void>();
   let queue: Promise<void> = Promise.resolve();
 
-  async function execute(name: string, input: unknown, isParsed: boolean): Promise<RunOutcome> {
+  async function execute(name: string, input: unknown, isParsed: boolean, origin: ChangeOrigin): Promise<RunOutcome> {
     const action = isActionName(contract, name) ? contract.actions[name] : undefined;
     if (action === undefined) {
       return { ok: false, reason: 'unknown-action', message: `"${name}" does not name an action.` };
@@ -64,7 +77,7 @@ export function createStateStore({ contract, initialState, handlers }: ContractI
     }
     const state = contract.state.safeParse(next);
     if (!state.success) return { ok: false, reason: 'invalid-state', problems: toProblems(state.error.issues) };
-    snapshot = { version: snapshot.version + 1, state: state.data };
+    snapshot = { version: snapshot.version + 1, state: state.data, change: { action: name, origin } };
     for (const listener of listeners) listener(snapshot);
     return { ok: true, snapshot };
   }
@@ -79,8 +92,8 @@ export function createStateStore({ contract, initialState, handlers }: ContractI
   return {
     contract,
     read: () => snapshot,
-    run: (name, rawInput) => enqueue(() => execute(name, rawInput, false)),
-    runParsed: (name, parsedInput) => enqueue(() => execute(name, parsedInput, true)),
+    run: (name, rawInput, origin) => enqueue(() => execute(name, rawInput, false, origin)),
+    runParsed: (name, parsedInput, origin) => enqueue(() => execute(name, parsedInput, true, origin)),
     subscribe(listener) {
       listeners.add(listener);
       return () => {

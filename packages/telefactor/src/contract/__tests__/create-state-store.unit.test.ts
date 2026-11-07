@@ -25,12 +25,13 @@ describe(createStateStore, () => {
     store.subscribe(listener);
 
     const [slow, fast] = await Promise.all([
-      store.run('append', { entry: 'slow', delayMs: 20 }),
-      store.run('append', { entry: 'fast', delayMs: 0 }),
+      store.run('append', { entry: 'slow', delayMs: 20 }, 'page'),
+      store.run('append', { entry: 'fast', delayMs: 0 }, 'page'),
     ]);
 
-    expect(slow).toStrictEqual({ ok: true, snapshot: { version: 1, state: { log: ['slow'] } } });
-    expect(fast).toStrictEqual({ ok: true, snapshot: { version: 2, state: { log: ['slow', 'fast'] } } });
+    const change = { action: 'append', origin: 'page' };
+    expect(slow).toStrictEqual({ ok: true, snapshot: { version: 1, state: { log: ['slow'] }, change } });
+    expect(fast).toStrictEqual({ ok: true, snapshot: { version: 2, state: { log: ['slow', 'fast'] }, change } });
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
@@ -39,9 +40,17 @@ describe(createStateStore, () => {
     const listener = vi.fn();
     store.subscribe(listener)();
 
-    await store.run('append', { entry: 'a', delayMs: 0 });
+    await store.run('append', { entry: 'a', delayMs: 0 }, 'page');
 
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('records the origin that the caller names', async () => {
+    const { store } = createFixture();
+
+    await store.runParsed('append', { entry: 'a', delayMs: 0 }, 'agent');
+
+    expect(store.read().change).toStrictEqual({ action: 'append', origin: 'agent' });
   });
 
   it.each([
@@ -65,7 +74,7 @@ describe(createStateStore, () => {
     const listener = vi.fn();
     store.subscribe(listener);
 
-    expect(await store.run(name, input)).toMatchObject(expected);
+    expect(await store.run(name, input, 'page')).toMatchObject(expected);
     expect(store.read()).toStrictEqual({ version: 0, state: { log: [] } });
     expect(listener).not.toHaveBeenCalled();
   });
@@ -82,14 +91,14 @@ describe('createStateStore with a transforming input schema', () => {
   });
 
   it('parses raw input with the schema', async () => {
-    expect(await createStateStore(implementation).run('set', { count: '3' })).toMatchObject({
+    expect(await createStateStore(implementation).run('set', { count: '3' }, 'page')).toMatchObject({
       ok: true,
       snapshot: { state: { count: 3 } },
     });
   });
 
   it('passes input that is already parsed to the handler unparsed', async () => {
-    expect(await createStateStore(implementation).runParsed('set', { count: 3 })).toMatchObject({
+    expect(await createStateStore(implementation).runParsed('set', { count: 3 }, 'agent')).toMatchObject({
       ok: true,
       snapshot: { state: { count: 3 } },
     });

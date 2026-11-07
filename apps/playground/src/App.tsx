@@ -1,7 +1,7 @@
-import type { ContractClient, TelefactorClient } from '@williamthorsen/telefactor/client';
+import type { ContractClient, HarnessEntry, TelefactorClient } from '@williamthorsen/telefactor/client';
+import { HarnessPicker } from '@williamthorsen/telefactor/react';
 import { type ReactElement, useState } from 'react';
 
-import { type HarnessEntry, HarnessPanel } from './harness/HarnessPanel.tsx';
 import { JobPanel } from './job/JobPanel.tsx';
 import type { notesContract } from './notes/notes-contract.ts';
 import { NotesPanel } from './notes/NotesPanel.tsx';
@@ -17,7 +17,7 @@ export function App({ client, notesClient }: AppProps): ReactElement {
   return (
     <main className="stack">
       <h1>telefactor playground</h1>
-      <HarnessPanel client={client} harness={harness?.name} onHarnessChange={setHarness} />
+      <HarnessPicker className="harness-picker" client={client} harness={harness?.name} onHarnessChange={setHarness} />
       <TerminalPanel client={client} harness={harness} />
       <JobPanel client={client} harness={harness?.name} />
       <NotesPanel client={notesClient} />

@@ -23,7 +23,7 @@ export function createMcpServer(contract: Contract, store: StateStore): McpServe
 
   for (const [name, action] of Object.entries(contract.actions)) {
     server.registerTool(name, { description: action.description, inputSchema: getInputSchema(action) }, async (input) =>
-      toToolResult(await store.runParsed(name, input)),
+      toToolResult(await store.runParsed(name, input, 'agent')),
     );
   }
 

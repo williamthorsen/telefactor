@@ -9,7 +9,7 @@ A library that embeds the user's own agent harness (Claude Code, Rovo Dev, Codex
 - `apps/`: runnable apps that nothing imports
 - `apps/playground` — `@williamthorsen/telefactor-playground`: the React app that consumes the package's build output, so its scripts compile the package before they read it
 - `packages/_workspace` — scaffold for new libraries (no-op build)
-- `packages/telefactor` — `@williamthorsen/telefactor`: harness registry, headless job runner, pseudo-terminal sessions with their WebSocket, action contract with its MCP endpoint, Vite plugin, clients, and the React terminal component
+- `packages/telefactor` — `@williamthorsen/telefactor`: harness registry, headless job runner, pseudo-terminal sessions with their WebSocket, action contract with its MCP endpoint, Vite plugin, clients, and the React session hook, harness picker, and terminal component
 - `.config/release-kit.config.ts` — release-kit configuration
 - `.config/readyup.config.ts` — readyup configuration
 - `.config/wt.toml` — worktrunk hooks, whose `[pre-start]` pipeline copies gitignored local files into a new worktree before installing dependencies

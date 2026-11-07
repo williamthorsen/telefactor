@@ -42,8 +42,16 @@ describe(createMcpServer, () => {
     const result = await client.callTool({ name: 'add', arguments: { amount: 4 } });
     const read = await client.callTool({ name: 'get_state' });
 
-    expect(result.structuredContent).toStrictEqual({ version: 1, state: { count: 4 } });
-    expect(read.structuredContent).toStrictEqual({ version: 1, state: { count: 4 } });
+    expect(result.structuredContent).toStrictEqual({
+      version: 1,
+      state: { count: 4 },
+      change: { action: 'add', origin: 'agent' },
+    });
+    expect(read.structuredContent).toStrictEqual({
+      version: 1,
+      state: { count: 4 },
+      change: { action: 'add', origin: 'agent' },
+    });
     expect(store.read().state).toStrictEqual({ count: 4 });
   });
 
@@ -59,7 +67,11 @@ describe(createMcpServer, () => {
 
     const result = await client.callTool({ name: 'set', arguments: { count: '7' } });
 
-    expect(result.structuredContent).toStrictEqual({ version: 1, state: { count: 7 } });
+    expect(result.structuredContent).toStrictEqual({
+      version: 1,
+      state: { count: 7 },
+      change: { action: 'set', origin: 'agent' },
+    });
   });
 
   it('returns an error result for a refused action and leaves the state unchanged', async () => {

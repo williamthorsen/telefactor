@@ -57,8 +57,8 @@ describe('telefactor with a contract', () => {
     await client.close();
 
     expect(tools.map((tool) => tool.name)).toContain('add');
-    expect(page).toStrictEqual({ version: 1, state: { count: 5 } });
-    await expect.poll(() => events.text, { timeout: 5000 }).toContain('"version":1,"state":{"count":5}');
+    expect(page).toStrictEqual({ version: 1, state: { count: 5 }, change: { action: 'add', origin: 'agent' } });
+    await expect.poll(() => events.text, { timeout: 5000 }).toContain('"change":{"action":"add","origin":"agent"}');
     events.abort();
   });
 
@@ -74,7 +74,11 @@ describe('telefactor with a contract', () => {
     const read = await client.callTool({ name: 'get_state' });
     await client.close();
 
-    expect(read.structuredContent).toStrictEqual({ version: 1, state: { count: 2 } });
+    expect(read.structuredContent).toStrictEqual({
+      version: 1,
+      state: { count: 2 },
+      change: { action: 'add', origin: 'page' },
+    });
   });
 
   it.each(['/api/telefactor/mcp', '/api/telefactor/actions/add', '/api/telefactor/state'])(

@@ -10,7 +10,9 @@ export {
 } from './client/create-contract-client.ts';
 export { createTelefactorClient, type PageLocation, type TelefactorClient } from './client/create-telefactor-client.ts';
 export { TelefactorRequestError } from './client/telefactor-request-error.ts';
+export type { ChangeOrigin, StateChange } from './contract/create-state-store.ts';
 export {
+  type HarnessEntry,
   type HarnessList,
   harnessListSchema,
   type HarnessTestResult,

@@ -1,7 +1,6 @@
 import type { Job, TelefactorClient } from '@williamthorsen/telefactor/client';
+import { RequestError } from '@williamthorsen/telefactor/react';
 import { type ReactElement, type SyntheticEvent, useEffect, useRef, useState } from 'react';
-
-import { RequestError } from '#src/requests/RequestError.tsx';
 
 /** The interval at which a running job is polled when the props name none. */
 export const DEFAULT_POLL_INTERVAL_MS = 1000;

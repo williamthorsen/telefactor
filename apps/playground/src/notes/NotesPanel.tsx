@@ -1,46 +1,24 @@
-import type { ContractClient, ContractSnapshot } from '@williamthorsen/telefactor/client';
-import { type ReactElement, type SyntheticEvent, useEffect, useState } from 'react';
-
-import { RequestError } from '#src/requests/RequestError.tsx';
+import type { ContractClient, StateChange } from '@williamthorsen/telefactor/client';
+import type { ContractState } from '@williamthorsen/telefactor/contract';
+import { RequestError, useAgentSession } from '@williamthorsen/telefactor/react';
+import { type ReactElement, type SyntheticEvent, useState } from 'react';
 
 import type { notesContract } from './notes-contract.ts';
 
-/** The notes that the page and the agent share: the list with its selection, and a form that adds a note. */
+/**
+ * The notes that the page and the agent share: the list with its selection, a form that adds a note, and a status line
+ * that announces each change that the agent makes.
+ */
 export function NotesPanel({ client }: NotesPanelProps): ReactElement {
-  const [snapshot, setSnapshot] = useState<ContractSnapshot<typeof notesContract>>();
+  const { state, call, error, announcement } = useAgentSession(client, { describeChange: describeNotesChange });
   const [text, setText] = useState('');
-  const [error, setError] = useState<unknown>();
-
-  useEffect(
-    () =>
-      client.subscribe(
-        (next) => {
-          setSnapshot(next);
-          setError(undefined);
-        },
-        { onError: setError },
-      ),
-    [client],
-  );
 
   async function addNote(event: SyntheticEvent): Promise<void> {
     event.preventDefault();
-    if (await call(() => client.call('addNote', { text }))) setText('');
+    if (await call('addNote', { text })) setText('');
   }
 
-  /** Runs an action and reports whether it succeeded; the stream delivers the snapshot that it commits. */
-  async function call(action: () => Promise<unknown>): Promise<boolean> {
-    try {
-      await action();
-      setError(undefined);
-      return true;
-    } catch (callError: unknown) {
-      setError(callError);
-      return false;
-    }
-  }
-
-  const notes = snapshot?.state.notes;
+  const notes = state?.notes;
   return (
     <section className="stack" aria-labelledby="notes-heading">
       <h2 id="notes-heading">Notes</h2>
@@ -52,15 +30,15 @@ export function NotesPanel({ client }: NotesPanelProps): ReactElement {
               <button
                 type="button"
                 className="note"
-                aria-pressed={note.id === snapshot?.state.selectedId}
-                onClick={() => void call(() => client.call('selectNote', { id: note.id }))}
+                aria-pressed={note.id === state?.selectedId}
+                onClick={() => void call('selectNote', { id: note.id })}
               >
                 {note.text}
               </button>
               <button
                 type="button"
                 aria-label={`Remove ${note.text}`}
-                onClick={() => void call(() => client.call('removeNote', { id: note.id }))}
+                onClick={() => void call('removeNote', { id: note.id })}
               >
                 Remove
               </button>
@@ -75,6 +53,9 @@ export function NotesPanel({ client }: NotesPanelProps): ReactElement {
           Add
         </button>
       </form>
+      <p className="secondary" role="status">
+        {announcement !== undefined && <span key={announcement.version}>{announcement.text}</span>}
+      </p>
       {error !== undefined && <RequestError error={error} />}
     </section>
   );
@@ -83,3 +64,20 @@ export function NotesPanel({ client }: NotesPanelProps): ReactElement {
 export interface NotesPanelProps {
   client: ContractClient<typeof notesContract>;
 }
+
+// region | Helpers
+function describeNotesChange(change: StateChange, state: ContractState<typeof notesContract>): string {
+  switch (change.action) {
+    case 'addNote':
+      return 'The agent added a note.';
+    case 'removeNote':
+      return 'The agent removed a note.';
+    case 'selectNote': {
+      const selected = state.notes.find((note) => note.id === state.selectedId);
+      return selected === undefined ? 'The agent selected a note.' : `The agent selected ${selected.text}.`;
+    }
+    default:
+      return `The agent ran ${change.action}.`;
+  }
+}
+// endregion | Helpers

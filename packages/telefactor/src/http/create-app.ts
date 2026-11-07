@@ -157,7 +157,7 @@ export function createTelefactorApp<E extends Env>({
     app.post('/actions/:name', async (context) => {
       const body = await readJsonBody(context);
       if (!body.ok) return body.response;
-      return respondToOutcome(context, await store.run(context.req.param('name'), body.value));
+      return respondToOutcome(context, await store.run(context.req.param('name'), body.value, 'page'));
     });
 
     const mcpHandler = createMcpHandler(() => createMcpServer(store.contract, store));
