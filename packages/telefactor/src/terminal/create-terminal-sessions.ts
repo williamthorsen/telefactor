@@ -230,17 +230,11 @@ function releaseClient(session: Session): void {
 /** Sends output to the client, pausing the pty while the socket's backlog is above the high-water mark. */
 function sendToClient(session: Session, client: Client, bytes: Uint8Array): void {
   client.socket.send(bytes, () => {
-    if (!(client.isPausing && session.client === client && client.socket.bufferedAmount < HIGH_WATER_BYTES)) {
-      return;
-    }
-
+    if (!client.isPausing || session.client !== client || client.socket.bufferedAmount >= HIGH_WATER_BYTES) return;
     client.isPausing = false;
     session.pty.resume();
   });
-  if (!(!client.isPausing && client.socket.bufferedAmount >= HIGH_WATER_BYTES)) {
-    return;
-  }
-
+  if (client.isPausing || client.socket.bufferedAmount < HIGH_WATER_BYTES) return;
   client.isPausing = true;
   session.pty.pause();
 }
