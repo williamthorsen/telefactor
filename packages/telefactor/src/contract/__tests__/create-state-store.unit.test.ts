@@ -8,7 +8,7 @@ import { implementContract } from '../implement-contract.ts';
 const contract = defineContract({
   state: z.object({ log: z.array(z.string()) }),
   actions: {
-    append: { description: 'Appends an entry.', input: z.object({ entry: z.string().min(1), delayMs: z.number() }) },
+    append: { description: 'Appends an entry.', input: z.object({ entry: z.string().min(1) }) },
     corrupt: { description: 'Returns a state that the schema rejects.' },
     fail: { description: 'Throws.' },
   },
@@ -20,14 +20,22 @@ describe(createStateStore, () => {
   });
 
   it('commits concurrent async calls in call order and notifies subscribers', async () => {
-    const { store } = createFixture();
+    const { store, hold } = createFixture();
     const listener = vi.fn();
     store.subscribe(listener);
+    const release = hold('slow');
 
-    const [slow, fast] = await Promise.all([
-      store.run('append', { entry: 'slow', delayMs: 20 }, 'page'),
-      store.run('append', { entry: 'fast', delayMs: 0 }, 'page'),
+    const pending = Promise.all([
+      store.run('append', { entry: 'slow' }, 'page'),
+      store.run('append', { entry: 'fast' }, 'page'),
     ]);
+    await flushPromises();
+
+    expect(store.read().version).toBe(0);
+    expect(listener).not.toHaveBeenCalled();
+
+    release();
+    const [slow, fast] = await pending;
 
     const change = { action: 'append', origin: 'page' };
     expect(slow).toStrictEqual({ ok: true, snapshot: { version: 1, state: { log: ['slow'] }, change } });
@@ -40,7 +48,7 @@ describe(createStateStore, () => {
     const listener = vi.fn();
     store.subscribe(listener)();
 
-    await store.run('append', { entry: 'a', delayMs: 0 }, 'page');
+    await store.run('append', { entry: 'a' }, 'page');
 
     expect(listener).not.toHaveBeenCalled();
   });
@@ -48,7 +56,7 @@ describe(createStateStore, () => {
   it('records the origin that the caller names', async () => {
     const { store } = createFixture();
 
-    await store.runParsed('append', { entry: 'a', delayMs: 0 }, 'agent');
+    await store.runParsed('append', { entry: 'a' }, 'agent');
 
     expect(store.read().change).toStrictEqual({ action: 'append', origin: 'agent' });
   });
@@ -59,7 +67,7 @@ describe(createStateStore, () => {
     [
       'invalid input',
       'append',
-      { entry: '', delayMs: 0 },
+      { entry: '' },
       { ok: false, reason: 'invalid-input', problems: [{ path: 'entry', message: expect.any(String) }] },
     ],
     ['a handler that throws', 'fail', {}, { ok: false, reason: 'handler-failed', message: 'boom' }],
@@ -133,16 +141,28 @@ describe(describeRefusal, () => {
 });
 
 // region | Helpers
+/** Creates a store whose `append` handler waits for each entry that `hold` names until its release is called. */
 function createFixture() {
+  const gates = new Map<string, Promise<undefined>>();
   return {
-    store: createStateStore(implementContract(contract, { initialState: { log: [] }, handlers: createHandlers() })),
+    hold: (entry: string) => {
+      const { promise, resolve } = Promise.withResolvers<undefined>();
+      gates.set(entry, promise);
+      return () => {
+        resolve(undefined);
+      };
+    },
+    store: createStateStore(
+      implementContract(contract, { initialState: { log: [] }, handlers: createHandlers(gates) }),
+    ),
   };
 }
 
-function createHandlers() {
+/** Creates the contract's handlers; `append` first awaits the gate registered for its entry, if any. */
+function createHandlers(gates: ReadonlyMap<string, Promise<undefined>> = new Map()) {
   return {
-    append: async (state: { log: string[] }, { entry, delayMs }: { entry: string; delayMs: number }) => {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    append: async (state: { log: string[] }, { entry }: { entry: string }) => {
+      await gates.get(entry);
       return { log: [...state.log, entry] };
     },
     // @ts-expect-error -- The handler returns a state that the schema rejects.
@@ -151,5 +171,10 @@ function createHandlers() {
       throw new Error('boom');
     },
   };
+}
+
+/** Resolves after every pending microtask has run. */
+async function flushPromises() {
+  await new Promise((resolve) => setImmediate(resolve));
 }
 // endregion | Helpers
