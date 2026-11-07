@@ -11,8 +11,8 @@ export const MAX_TIMEOUT_MINUTES = 120;
 const argvSchema = z.array(z.string()).min(1, 'Give at least one argument');
 
 /**
- * A harness recipe: `{prompt}` in a `command` argument expands to the prompt text, which also goes to stdin. `{mcpUrl}`
- * in an `mcpArgs` argument expands to the URL of the MCP endpoint.
+ * A harness recipe: Each placeholder that the job defines expands in a `command` argument, as `{prompt}` expands to the
+ * prompt text in the built-in job. `{mcpUrl}` in an `mcpArgs` argument expands to the URL of the MCP endpoint.
  */
 export const harnessSchema = z
   .strictObject({
