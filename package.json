@@ -27,7 +27,7 @@
     "@types/node": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "@vitest/coverage-v8": "5.1.0",
-    "@williamthorsen/eslint-config-typescript": "20.2.0",
+    "@williamthorsen/eslint-config-typescript": "20.3.0",
     "@williamthorsen/nmr": "catalog:",
     "@williamthorsen/release-kit": "16.1.2",
     "@williamthorsen/repo-tools": "0.2.3",
