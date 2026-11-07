@@ -13,8 +13,8 @@ const config = defineConfig({
     labels: {
       'scope:root': { color: '00ff96' },
       'scope:_workspace': { color: '00ff96' },
-      'scope:playground': { color: '00ff96', description: 'playground app' },
-      'scope:telefactor': { color: '00ff96', description: 'telefactor package' },
+      'scope:playground': { color: '00ff96' },
+      'scope:telefactor': { color: '00ff96' },
     },
   },
 
