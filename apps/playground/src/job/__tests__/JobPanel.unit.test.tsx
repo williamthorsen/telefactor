@@ -169,9 +169,12 @@ describe(JobPanel, () => {
     expect(screen.getByRole('button', { name: 'Run' })).toHaveAttribute('aria-disabled', 'false');
   });
 
-  describe('when a poll settles after the cancel resolves, before React commits the cancelled job', () => {
+  describe('when a poll settles after the cancel settles, before React commits the outcome', () => {
     it('keeps the cancelled job and stops polling when the poll reports the job running', async () => {
-      const getJob = await startWithHeldPoll((inFlight) => inFlight.resolve(buildJob()));
+      const getJob = await startWithHeldPoll({
+        cancel: () => Promise.resolve(buildJob({ status: 'cancelled' })),
+        settle: (inFlight) => inFlight.resolve(buildJob()),
+      });
 
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await advance(POLL_INTERVAL_MS * 3);
@@ -181,15 +184,29 @@ describe(JobPanel, () => {
     });
 
     it('keeps the cancelled job and shows no error when the poll fails', async () => {
-      const getJob = await startWithHeldPoll((inFlight) =>
-        inFlight.reject(new TelefactorRequestError(500, 'Server error.')),
-      );
+      const getJob = await startWithHeldPoll({
+        cancel: () => Promise.resolve(buildJob({ status: 'cancelled' })),
+        settle: (inFlight) => inFlight.reject(new TelefactorRequestError(500, 'Server error.')),
+      });
 
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       await advance(POLL_INTERVAL_MS * 3);
 
       expect(screen.getByRole('status')).toHaveTextContent('Cancelled on claude-code.');
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(getJob).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows the cancel's error when both the cancel and the poll fail", async () => {
+      const getJob = await startWithHeldPoll({
+        cancel: () => Promise.reject(new TelefactorRequestError(503, 'Cancel unavailable.')),
+        settle: (inFlight) => inFlight.reject(new TelefactorRequestError(500, 'Server error.')),
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await advance(POLL_INTERVAL_MS * 3);
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Cancel unavailable.');
       expect(getJob).toHaveBeenCalledTimes(1);
     });
   });
@@ -227,17 +244,21 @@ async function start(prompt: string): Promise<void> {
 }
 
 /**
- * Starts a job whose first poll is held open until `settle` settles it, one microtask after `cancelJob` resolves:
- * before React can commit the cancelled job.
+ * Starts a job whose first poll is held open until `settle` settles it, one microtask after the cancel settles with
+ * the outcome of `cancel`: before React can commit that outcome.
  */
-async function startWithHeldPoll(
-  settle: (inFlight: PromiseWithResolvers<Job>) => void,
-): Promise<Mock<TelefactorClient['getJob']>> {
+async function startWithHeldPoll({
+  cancel,
+  settle,
+}: {
+  cancel: () => Promise<Job>;
+  settle: (inFlight: PromiseWithResolvers<Job>) => void;
+}): Promise<Mock<TelefactorClient['getJob']>> {
   const inFlight = Promise.withResolvers<Job>();
   const getJob = vi.fn<TelefactorClient['getJob']>(() => inFlight.promise);
   const cancelJob = vi.fn(() => {
     queueMicrotask(() => settle(inFlight));
-    return Promise.resolve(buildJob({ status: 'cancelled' }));
+    return cancel();
   });
   renderPanel(createFakeClient({ cancelJob, getJob, startJob: () => Promise.resolve(buildJob()) }));
   await start('Summarize README.md');
