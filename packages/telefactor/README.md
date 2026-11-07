@@ -41,7 +41,7 @@ const finished = await client.getJob(job.id); // poll until `status` is no longe
 
 The [playground app](https://github.com/williamthorsen/telefactor/tree/main/apps/playground) is a complete example: [`vite.config.ts`](https://github.com/williamthorsen/telefactor/blob/main/apps/playground/vite.config.ts) mounts the plugin, and its page lists the harnesses, tests one, and runs, polls, and cancels a job.
 
-A finished job is `done` with its harness's stdout as `result.output`, `failed` with an `error` that names how the run ended and quotes the end of its stderr, or `cancelled`. The library spawns the user's installed CLI and never reads or forwards its credentials.
+A finished job is `done` with its harness's stdout as `result.output` (or the result of the app's own [job](#jobs)), `failed` with an `error` that names how the run ended and quotes the end of its stderr, or `cancelled`. The library spawns the user's installed CLI and never reads or forwards its credentials.
 
 ## Contract
 
@@ -152,7 +152,7 @@ const [harness, setHarness] = useState<HarnessEntry>();
 
 The plugin chooses its harnesses from the first of these sources that defines any:
 
-1. The `TELEFACTOR_HARNESS_COMMAND` environment variable.
+1. The `TELEFACTOR_HARNESS_COMMAND` environment variable, or the one that the `commandVariable` option names.
 2. The config file.
 3. The built-in recipes for `claude-code` (the default), `codex`, and `rovo-dev`, defined in [`built-in-harnesses.ts`](https://github.com/williamthorsen/telefactor/blob/main/packages/telefactor/src/harness/built-in-harnesses.ts).
 
@@ -182,24 +182,76 @@ A request names a harness; no route accepts a command. Each built-in recipe runs
 - `default`: The harness that runs a job whose request names none. It may be omitted when the file defines one harness or does not define `harnesses`.
 - `timeoutMinutes`: The time after which a job is stopped and fails. Defaults to 10; at most 120.
 
+The file may also hold the app's own keys, which the plugin's `config` option declares as a zod object. The plugin still reports a key that neither defines, and the app reads its values, with their defaults when the file is absent, from `readHarnessSettings` with the same schema:
+
+```ts
+const appConfig = z.object({ promptsDirectory: z.string().default('prompts') });
+
+telefactor({ config: appConfig });
+const resolved = await readHarnessSettings({ env: process.env, configPath, config: appConfig });
+if (resolved.ok) console.log(resolved.settings.app.promptsDirectory);
+```
+
 ### Environment variable
 
-`TELEFACTOR_HARNESS_COMMAND` is a JSON array of strings, such as `["my-agent", "--headless"]`. When set, it replaces every other harness with one named `environment`, which has no interactive command, and the config file's `timeoutMinutes` still applies. The plugin reads it when the dev server starts and stops the server on a malformed value.
+`TELEFACTOR_HARNESS_COMMAND`, or the variable that the `commandVariable` option names, is a JSON array of strings, such as `["my-agent", "--headless"]`. When set, it replaces every other harness with one named `environment`, which has no interactive command, and the config file's `timeoutMinutes` still applies. The plugin reads it when the dev server starts and stops the server on a malformed value.
 
 ### Prompt delivery
 
-The prompt goes to the command's stdin, which is then closed. `{prompt}` in a `command` argument expands to the prompt text, for a harness that does not read stdin, as Rovo Dev does not. A prompt that starts with `-` can then be read as a flag. Put secrets in the environment rather than in an argv, because `GET /harnesses` returns each recipe's command to the page.
+In the built-in job, the prompt goes to the command's stdin, which is then closed. `{prompt}` in a `command` argument expands to the prompt text, for a harness that does not read stdin, as Rovo Dev does not. A prompt that starts with `-` can then be read as a flag. Put secrets in the environment rather than in an argv, because `GET /harnesses` returns each recipe's command to the page.
+
+## Jobs
+
+A job states how the harness's command runs and what the job returns. The built-in job delivers the prompt as [above](#prompt-delivery) and returns stdout. An app declares its own with `defineJob`, which the page and the server both import, and implements it on the server with `implementJob`:
+
+```ts
+// src/note-job.ts, imported by the page and the server
+import { defineJob } from '@williamthorsen/telefactor/contract';
+import { z } from 'zod';
+
+export const noteJob = defineJob({ input: z.object({ name: z.string() }), result: z.object({ text: z.string() }) });
+```
+
+```ts
+// vite.config.ts
+import { implementJob } from '@williamthorsen/telefactor/server';
+
+const job = implementJob(noteJob, {
+  async prepare({ id, prompt, input }) {
+    const promptPath = await writePromptFile(id, input.name, prompt);
+    const outputPath = outputPathFor(id, input.name);
+    return {
+      placeholders: { prompt: promptPath, output: outputPath },
+      stdin: '',
+      read: async () => ({ text: await readFile(outputPath, 'utf8') }),
+      release: (outcome) => removeJobFiles(id, outcome),
+    };
+  },
+});
+
+export default defineConfig({ plugins: [telefactor({ job })] });
+```
+
+`prepare` runs before each run. In the harness's `command`, each `{name}` that `placeholders` defines expands to its value, once. `read` returns the result once the command exits with code 0, and the server checks it against the declared schema. `release` learns whether the job was `done`, `failed`, `timed-out`, or `cancelled` once the command has ended. A job keeps the built-in job's timeout, cancel, and failure reporting. The page passes the declaration to the client, which then sends the job's fields and parses its result:
+
+```ts
+const client = createTelefactorClient({ job: noteJob });
+const started = await client.startJob({ prompt: 'Draft a note', name: 'today' });
+```
 
 ## Plugin options
 
-| Option             | Default                  | Effect                                                     |
-| ------------------ | ------------------------ | ---------------------------------------------------------- |
-| `basePath`         | `/api/telefactor`        | The path under which the routes are mounted.               |
-| `configPath`       | `telefactor.config.json` | The config file, resolved against the Vite root.           |
-| `contract`         | none                     | The result of `implementContract`, which the routes serve. |
-| `workingDirectory` | the Vite root            | The directory in which harnesses run, resolved likewise.   |
+| Option             | Default                      | Effect                                                                    |
+| ------------------ | ---------------------------- | ------------------------------------------------------------------------- |
+| `basePath`         | `/api/telefactor`            | The path under which the routes are mounted.                              |
+| `commandVariable`  | `TELEFACTOR_HARNESS_COMMAND` | The [environment variable](#environment-variable) that defines a harness. |
+| `config`           | none                         | The zod object of the app's own keys in the [config file](#config-file).  |
+| `configPath`       | `telefactor.config.json`     | The config file, resolved against the Vite root.                          |
+| `contract`         | none                         | The result of `implementContract`, which the routes serve.                |
+| `job`              | the built-in job             | The result of `implementJob`, which `POST /jobs` runs.                    |
+| `workingDirectory` | the Vite root                | The directory in which harnesses run, resolved likewise.                  |
 
-The client takes the same `basePath`.
+The client takes the same `basePath`, and the declaration of the same `job`.
 
 ## Routes
 
@@ -207,7 +259,7 @@ The plugin mounts these routes on the dev server only (`vite build` and `vite pr
 
 - `GET /harnesses` lists the harnesses, or the problems of a config file that cannot be used.
 - `POST /harnesses/:name/test` runs a harness's `test` command, for at most 60 seconds.
-- `POST /jobs` starts a job from a JSON body `{ "prompt": "…", "harness": "…" }`; `harness` is optional.
+- `POST /jobs` starts a job from a JSON body `{ "prompt": "…", "harness": "…" }` and the job's own fields; `harness` is optional, and a field that the job does not take is refused with `400`.
 - `GET /jobs/:id` reads a job, and `DELETE /jobs/:id` cancels it.
 - `POST /terminal/sessions` starts an interactive session from a JSON body `{ "harness": "…" }`, in which `harness` is optional, and returns `{ "id": …, "harness": … }`. The `id` is the session's credential. It refuses a harness without an `interactive` command with `409`, and answers `503` before the server listens and in Vite's middleware mode.
 - `DELETE /terminal/sessions/:id` ends a session.

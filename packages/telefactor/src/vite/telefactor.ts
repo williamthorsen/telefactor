@@ -2,11 +2,13 @@ import path from 'node:path';
 
 import { getRequestListener, type Http2Bindings, type HttpBindings } from '@hono/node-server';
 import type { Plugin } from 'vite';
+import type { z } from 'zod';
 
 import { createStateStore } from '#src/contract/create-state-store.ts';
 import type { ContractImplementation } from '#src/contract/implement-contract.ts';
-import { readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
+import { HARNESS_COMMAND_VARIABLE, readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { runHarnessTest } from '#src/harness/run-harness-test.ts';
+import { buildHarnessConfigSchema } from '#src/harness/settings-schema.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
 import {
   isAllowedUpgradeRequest,
@@ -16,6 +18,7 @@ import {
 } from '#src/http/request-guards.ts';
 import { createHarnessRun } from '#src/jobs/create-harness-run.ts';
 import { createJobs } from '#src/jobs/create-jobs.ts';
+import type { JobImplementation } from '#src/jobs/implement-job.ts';
 import { createInMemoryJobStore } from '#src/jobs/in-memory-job-store.ts';
 import { createTerminalSessions } from '#src/terminal/create-terminal-sessions.ts';
 import { createTerminalUpgradeHandler } from '#src/terminal/handle-terminal-upgrade.ts';
@@ -30,10 +33,21 @@ export const DEFAULT_CONFIG_FILE = 'telefactor.config.json';
 export interface TelefactorPluginOptions {
   /** The path under which the routes are mounted; defaults to `/api/telefactor`. */
   basePath?: string;
+  /**
+   * The schema of the app's own keys in the config file, which the file may then hold beside the package's. An app
+   * reads their values with `readHarnessSettings` and the same schema. Its keys may not name the package's keys.
+   */
+  config?: z.ZodObject;
+  /**
+   * The environment variable whose JSON argv replaces every other harness; defaults to `TELEFACTOR_HARNESS_COMMAND`.
+   */
+  commandVariable?: string;
   /** The config file, resolved against the Vite root; defaults to `telefactor.config.json`. */
   configPath?: string;
   /** The contract whose state and actions the page's routes and the MCP endpoint serve, from `implementContract`. */
   contract?: ContractImplementation;
+  /** The job that `POST /jobs` runs, from `implementJob`; defaults to the built-in prompt job. */
+  job?: JobImplementation;
   /** The directory in which harnesses run, resolved against the Vite root; defaults to the root. */
   workingDirectory?: string;
 }
@@ -41,33 +55,40 @@ export interface TelefactorPluginOptions {
 /**
  * Creates the Vite plugin that serves the harness, job, and terminal routes and the terminal socket on the dev server,
  * and with a contract, its state, actions, and MCP endpoint. It stops the server on a malformed
- * `TELEFACTOR_HARNESS_COMMAND`, re-reads the config file on each request that needs it, logs the MCP endpoint's URL
+ * harness command variable, re-reads the config file on each request that needs it, logs the MCP endpoint's URL
  * once the server listens, and cancels running jobs and ends terminal sessions when the server closes.
  */
 export function telefactor({
   basePath = DEFAULT_BASE_PATH,
+  commandVariable = HARNESS_COMMAND_VARIABLE,
+  config,
   configPath = DEFAULT_CONFIG_FILE,
   contract,
+  job,
   workingDirectory = '.',
 }: TelefactorPluginOptions = {}): Plugin {
+  // Refuse an app config schema that names a package key while the Vite config loads.
+  if (config !== undefined) buildHarnessConfigSchema(config);
+
   return {
     name: 'telefactor',
     apply: 'serve',
     configureServer(server) {
       const { root } = server.config;
       // A malformed variable cannot change without a restart.
-      readEnvironmentCommand(process.env);
+      readEnvironmentCommand(process.env, commandVariable);
       const resolvedConfigPath = path.resolve(root, configPath);
       const resolvedWorkingDirectory = path.resolve(root, workingDirectory);
 
       const jobs = createJobs({
-        run: createHarnessRun({ workingDirectory: resolvedWorkingDirectory }),
+        run: createHarnessRun({ workingDirectory: resolvedWorkingDirectory, ...(job !== undefined && { job }) }),
         store: createInMemoryJobStore(),
       });
       const sessions = createTerminalSessions({ loadPty: loadNodePty, workingDirectory: resolvedWorkingDirectory });
       const { httpServer } = server;
       const app = createTelefactorApp<{ Bindings: Http2Bindings | HttpBindings }>({
         jobs,
+        ...(job !== undefined && { job: job.declaration }),
         ...(contract !== undefined && { store: createStateStore(contract) }),
         terminal: {
           sessions,
@@ -84,7 +105,10 @@ export function telefactor({
             return { ok: true, mcpUrl: `${new URL(local).origin}${basePath}/mcp` };
           },
         },
-        readSettings: () => readHarnessSettings({ env: process.env, configPath: resolvedConfigPath }),
+        readSettings: () => {
+          const options = { env: process.env, configPath: resolvedConfigPath, commandVariable };
+          return config === undefined ? readHarnessSettings(options) : readHarnessSettings({ ...options, config });
+        },
         runTest: (argv, signal) => runHarnessTest({ argv, workingDirectory: resolvedWorkingDirectory, signal }),
         isAllowed: (context) =>
           isLoopbackRequest({

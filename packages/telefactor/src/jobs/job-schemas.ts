@@ -1,17 +1,31 @@
 import { z } from 'zod';
 
+import { promptJob } from '#src/contract/define-job.ts';
+
 export const jobStatusSchema = z.enum(['running', 'done', 'failed', 'cancelled']);
 
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 
 /** A headless job. `result` is present when the job is `done`, and `error` when it is `failed`. */
-export const jobSchema = z.object({
-  id: z.string(),
+export interface Job<R = z.output<typeof promptJob.result>> {
+  id: string;
   /** The name of the harness that runs the job. */
-  harness: z.string(),
-  status: jobStatusSchema,
-  result: z.object({ output: z.string() }).optional(),
-  error: z.string().optional(),
-});
+  harness: string;
+  status: JobStatus;
+  result?: R | undefined;
+  error?: string | undefined;
+}
 
-export type Job = z.infer<typeof jobSchema>;
+/** Builds the schema of a job whose result the given schema parses. */
+export function buildJobSchema<R extends z.ZodType>(result: R): z.ZodType<Job<z.output<R>>> {
+  return z.object({
+    id: z.string(),
+    harness: z.string(),
+    status: jobStatusSchema,
+    result: result.optional(),
+    error: z.string().optional(),
+  });
+}
+
+/** The schema of a built-in job. */
+export const jobSchema = buildJobSchema(promptJob.result);

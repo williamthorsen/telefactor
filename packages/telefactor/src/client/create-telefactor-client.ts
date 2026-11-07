@@ -1,29 +1,29 @@
 import type { z } from 'zod';
 
+import { type JobDeclaration, type JobRequest, type JobResult, promptJob } from '#src/contract/define-job.ts';
 import {
   type HarnessList,
   harnessListSchema,
   type HarnessTestResult,
   harnessTestResultSchema,
-  type StartJobRequest,
   type StartTerminalSessionRequest,
   type TerminalSessionInfo,
   terminalSessionSchema,
 } from '#src/http/route-schemas.ts';
-import { type Job, jobSchema } from '#src/jobs/job-schemas.ts';
+import { buildJobSchema, type Job } from '#src/jobs/job-schemas.ts';
 
 import { requestJson } from './request-json.ts';
 
-/** Calls the routes that the Vite plugin mounts. */
-export interface TelefactorClient {
+/** Calls the routes that the Vite plugin mounts, starting and reading the job that `J` declares. */
+export interface TelefactorClient<J extends JobDeclaration = typeof promptJob> {
   /** The path under which the routes are mounted. */
   readonly basePath: string;
-  cancelJob(id: string): Promise<Job>;
+  cancelJob(id: string): Promise<Job<JobResult<J>>>;
   closeTerminalSession(id: string): Promise<TerminalSessionInfo>;
   createTerminalSession(request: StartTerminalSessionRequest): Promise<TerminalSessionInfo>;
-  getJob(id: string): Promise<Job>;
+  getJob(id: string): Promise<Job<JobResult<J>>>;
   listHarnesses(): Promise<HarnessList>;
-  startJob(request: StartJobRequest): Promise<Job>;
+  startJob(request: JobRequest<J>): Promise<Job<JobResult<J>>>;
   /** Returns the WebSocket URL of a session's socket, on the page's host, with `wss:` on an `https:` page. */
   terminalSocketUrl(id: string): string;
   testHarness(name: string): Promise<HarnessTestResult>;
@@ -35,19 +35,29 @@ export interface PageLocation {
   host: string;
 }
 
+export interface TelefactorClientOptions {
+  basePath?: string;
+  fetch?: typeof fetch;
+  location?: PageLocation;
+}
+
 /**
  * Creates a client for the routes under `basePath`, which must match the plugin's; defaults to `/api/telefactor`.
- * `location` defaults to the page's own.
+ * `location` defaults to the page's own. `job` is the declaration of the plugin's job, the built-in prompt job when
+ * omitted; the client sends its fields and parses its result.
  */
+export function createTelefactorClient(options?: TelefactorClientOptions): TelefactorClient;
+export function createTelefactorClient<J extends JobDeclaration>(
+  options: TelefactorClientOptions & { job: J },
+): TelefactorClient<J>;
 export function createTelefactorClient({
   basePath = '/api/telefactor',
   fetch: fetchFunction = fetch,
   location,
-}: {
-  basePath?: string;
-  fetch?: typeof fetch;
-  location?: PageLocation;
-} = {}): TelefactorClient {
+  job = promptJob,
+}: TelefactorClientOptions & { job?: JobDeclaration } = {}): TelefactorClient<JobDeclaration> {
+  const jobSchema = buildJobSchema(job.result);
+
   function request<T>(schema: z.ZodType<T>, route: string, init: RequestInit = {}): Promise<T> {
     return requestJson(fetchFunction, schema, `${basePath}${route}`, init);
   }

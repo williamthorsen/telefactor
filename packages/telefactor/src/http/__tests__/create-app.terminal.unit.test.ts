@@ -130,7 +130,7 @@ function createFixture({
     source: 'file',
     configPath: '/app/telefactor.config.json',
     hasConfigFile: true,
-    settings: { default: 'interactive', timeoutMinutes: 10, harnesses: HARNESSES },
+    settings: { default: 'interactive', timeoutMinutes: 10, harnesses: HARNESSES, app: {} },
   };
   const sessions: TerminalSessions = {
     create: (argv, harness) => {
