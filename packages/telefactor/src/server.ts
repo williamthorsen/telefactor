@@ -1,4 +1,7 @@
-/** Public entry point `@williamthorsen/telefactor/server`: the harness registry, the job runner, and the routes. */
+/**
+ * Public entry point `@williamthorsen/telefactor/server`: the harness registry, the job runner, the terminal sessions
+ * and their socket, and the routes.
+ */
 export {
   createStateStore,
   describeRefusal,

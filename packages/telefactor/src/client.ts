@@ -1,4 +1,7 @@
-/** Public entry point `@williamthorsen/telefactor/client`: the route types, and fetch clients for the job and contract routes. */
+/**
+ * Public entry point `@williamthorsen/telefactor/client`: the route types, and fetch clients for the job, terminal, and
+ * contract routes.
+ */
 export {
   type ContractClient,
   type ContractSnapshot,

@@ -44,7 +44,9 @@ export function createTerminalUpgradeHandler({
       return;
     }
     server.handleUpgrade(request, socket, head, (webSocket) => {
-      const attachment = sessions.attach(decodeURIComponent(id), webSocket);
+      // `ws` closes the socket after an error, such as an oversized frame; a socket without a listener throws instead.
+      webSocket.on('error', () => {});
+      const attachment = sessions.attach(decodePathSegment(id), webSocket);
       if (attachment === undefined) return;
       webSocket.on('message', (data, isBinary) => {
         if (isBinary) {
@@ -62,6 +64,15 @@ export function createTerminalUpgradeHandler({
 }
 
 // region | Helpers
+/** Decodes a path segment, keeping a malformed one as it is, which then names no session. */
+function decodePathSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
 function escapeRegExp(text: string): string {
   return text.replaceAll(/[$()*+.?[\\\]^{|}]/g, String.raw`\$&`);
 }

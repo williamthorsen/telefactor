@@ -74,6 +74,12 @@ describe(createTerminalUpgradeHandler, () => {
     expect(code).toBe(TERMINAL_CLOSE_CODES.unknown);
   });
 
+  it('closes a socket whose session id is not valid percent-encoding', async () => {
+    const socket = openSocket('%E0%A4%A');
+
+    expect((await waitForClose(socket)).code).toBe(TERMINAL_CLOSE_CODES.unknown);
+  });
+
   it.each([
     ['a cross-origin upgrade', { origin: 'http://attacker.example' }],
     ['an upgrade that names a non-loopback host', { host: 'attacker.example' }],
@@ -89,6 +95,17 @@ describe(createTerminalUpgradeHandler, () => {
     });
 
     expect(status).toBe(403);
+  });
+
+  it('closes a socket that sends a frame above the size limit without failing the server', async () => {
+    const { id } = await createSession();
+    const socket = openSocket(id);
+    await waitForOpen(socket);
+
+    socket.send(Buffer.alloc(2 * 1024 * 1024), { binary: true });
+
+    expect((await waitForClose(socket)).code).toBe(1009);
+    expect(state.server?.listening).toBe(true);
   });
 
   it('leaves an upgrade for another path to the other listeners', async () => {
