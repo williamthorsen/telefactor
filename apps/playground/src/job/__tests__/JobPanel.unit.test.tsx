@@ -211,6 +211,32 @@ describe(JobPanel, () => {
     });
   });
 
+  it('leaves a job started during an earlier cancel alone when that cancel settles', async () => {
+    const pendingCancel = Promise.withResolvers<Job>();
+    const getJob = vi
+      .fn<TelefactorClient['getJob']>()
+      .mockResolvedValueOnce(buildJob({ status: 'done', result: { output: 'Finished.' } }))
+      .mockResolvedValue(buildJob({ id: 'job-2' }));
+    const startJob = vi
+      .fn<TelefactorClient['startJob']>()
+      .mockResolvedValueOnce(buildJob())
+      .mockResolvedValueOnce(buildJob({ id: 'job-2' }));
+    renderPanel(createFakeClient({ cancelJob: () => pendingCancel.promise, getJob, startJob }));
+
+    await start('Summarize README.md');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    // The first job finishes on its own while its cancel is in flight.
+    await advance(POLL_INTERVAL_MS);
+    await start('Summarize README.md');
+    pendingCancel.reject(new TelefactorRequestError(409, 'Job "job-1" has already finished.'));
+    await advance(0);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Running on claude-code…');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await advance(POLL_INTERVAL_MS);
+    expect(getJob).toHaveBeenLastCalledWith('job-2');
+  });
+
   it("shows a rejected start's problems", async () => {
     const client = createFakeClient({
       startJob: () =>
