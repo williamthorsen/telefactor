@@ -1,0 +1,101 @@
+[
+  {
+    "version": "0.1.0",
+    "date": "2026-11-07",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Adds the `@williamthorsen/telefactor` package, whose `telefactor` Vite plugin mounts routes under `/api/telefactor` for listing and testing harnesses and for starting, reading, and cancelling headless jobs, and whose `@williamthorsen/telefactor/client` entry point provides a typed fetch client for those routes. (#9)",
+            "hash": "c62c795bfe58d69bc0868947b24008e89ecb93bf",
+            "entry": 1
+          },
+          {
+            "description": "Adds harness selection, in which the plugin reads the harnesses from the `TELEFACTOR_HARNESS_COMMAND` environment variable, else from `telefactor.config.json` in the Vite root, else from built-in recipes for `claude-code`, `codex`, and `rovo-dev`, and in which a request names a harness rather than a command. (#9)",
+            "hash": "c62c795bfe58d69bc0868947b24008e89ecb93bf",
+            "entry": 2
+          },
+          {
+            "description": "Adds limits on each job, under which the plugin fails a job that exceeds its timeout (10 minutes by default, 120 at most) or writes more than 1 MiB of stdout and stops every process in the harness's process group when a job is cancelled or times out, and adds request guards that refuse with `403` a request that is not from a loopback address, names a host other than a loopback one, or comes from another origin. (#9)",
+            "hash": "c62c795bfe58d69bc0868947b24008e89ecb93bf",
+            "entry": 3
+          },
+          {
+            "description": "Adds the `apps/playground` React app, whose page lists the configured harnesses, tests the selected one, and starts, polls, and cancels a headless job, and links it from the package README as a complete example of mounting the plugin and driving the client. (#10)",
+            "hash": "36d2d2ec66a4118a877f581437129cbe1387feb3",
+            "entry": 1
+          },
+          {
+            "description": "Adds `defineContract` from the new `@williamthorsen/telefactor/contract` entry and `implementContract` from `./server`, which together declare a session state schema and the handlers of the actions that change it. (#12)",
+            "hash": "b150471795fe59bc17971a375bdf876124c70162",
+            "entry": 1
+          },
+          {
+            "description": "Adds a `contract` option to the `telefactor` Vite plugin, with which the dev server serves the state at `/state` and `/state/events`, runs actions at `/actions/:name`, and serves each action and a `get_state` tool to an agent harness at the MCP endpoint `/mcp`, whose URL it logs at startup. (#12)",
+            "hash": "b150471795fe59bc17971a375bdf876124c70162",
+            "entry": 2
+          },
+          {
+            "description": "Adds `createContractClient` to `@williamthorsen/telefactor/client`, which calls a contract's actions from the page, reads the state, and subscribes to state changes, reconnecting after a dropped connection. (#12)",
+            "hash": "b150471795fe59bc17971a375bdf876124c70162",
+            "entry": 3
+          },
+          {
+            "description": "Adds `HarnessTerminal`, a React 19 component exported from `@williamthorsen/telefactor/react`, which starts the harness's interactive session on the dev server, shows it in an embedded terminal, and reattaches to it after a reload, with Claude Code and Codex connected to the app's MCP endpoint without any setup. (#18)",
+            "hash": "e96adfca96351eb3ed15e31e4321eb2bd5684275",
+            "entry": 1
+          },
+          {
+            "description": "Adds the `interactive` and `mcpArgs` keys to a harness recipe, which set the command that starts a terminal session and the arguments that connect it to the MCP endpoint, with `{mcpUrl}` expanded to the endpoint's URL. (#18)",
+            "hash": "e96adfca96351eb3ed15e31e4321eb2bd5684275",
+            "entry": 2
+          },
+          {
+            "description": "Adds `createTerminalSession`, `closeTerminalSession`, and `terminalSocketUrl` to the client returned by `createTelefactorClient`, for a page that connects its own terminal to a session without React. (#18)",
+            "hash": "e96adfca96351eb3ed15e31e4321eb2bd5684275",
+            "entry": 3
+          },
+          {
+            "description": "Adds a `change` field to the state snapshot returned by `GET /state`, `/state/events`, `POST /actions/:name`, and the MCP tools, which names the action that made the latest commit and its `origin`: `agent` for an MCP tool call, `page` for a route call. (#19)",
+            "hash": "35624dbdb2323db488e57f8da7ba3c984a793b46",
+            "entry": 1
+          },
+          {
+            "description": "Adds the `useAgentSession` hook to `@williamthorsen/telefactor/react`, which returns the typed session state, a `call` that resolves whether the action committed rather than rejecting, the latest error, and an `announcement` of each commit made by the agent, worded by an optional `describeChange`. (#19)",
+            "hash": "35624dbdb2323db488e57f8da7ba3c984a793b46",
+            "entry": 2
+          },
+          {
+            "description": "Adds the `HarnessPicker` component, which lists the harnesses and tests the selected one, and the `RequestError` component, which shows a failed request with the problems that the routes reported, to `@williamthorsen/telefactor/react`. (#19)",
+            "hash": "35624dbdb2323db488e57f8da7ba3c984a793b46",
+            "entry": 3
+          }
+        ]
+      },
+      {
+        "title": "⚙️ Tooling",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Adds a `prepublishOnly` script that runs `nmr build` to `packages/telefactor/package.json`, so that a pack from a clean checkout contains the `dist/esm` files named by the package's `exports` and passes the tarball check of `release-kit prepare`. (#15)",
+            "hash": "d8f896a005c490698a0e75563149a86bea209f61",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "📦 Dependencies",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Adds `node-pty` 1.2.0-beta.18 as a dependency, whose install script pnpm runs only when `allowBuilds` in the consumer's `pnpm-workspace.yaml` lists `node-pty`. (#18)",
+            "hash": "e96adfca96351eb3ed15e31e4321eb2bd5684275",
+            "entry": 4
+          }
+        ]
+      }
+    ]
+  }
+]

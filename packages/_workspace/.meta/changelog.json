@@ -1,0 +1,30 @@
+[
+  {
+    "version": "0.1.0",
+    "date": "2026-11-07",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Licenses the repo and the `_workspace` scaffold under ISC by adding a `LICENSE` file and replacing `UNLICENSED` in both manifests, so that a library created from the scaffold can be published. (#8)",
+            "hash": "8f2782dc12e53e7c496b82ce6dea8312efc18684",
+            "entry": 4
+          }
+        ]
+      },
+      {
+        "title": "⚙️ Tooling",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Renames the root package to `telefactor` and the `_workspace` scaffold to `telefactor-workspace-template`, resets both to version 0.0.0 with empty changelogs, and points their homepage, bugs, and repository URLs at `williamthorsen/telefactor`. (#8)",
+            "hash": "8f2782dc12e53e7c496b82ce6dea8312efc18684",
+            "entry": 1
+          }
+        ]
+      }
+    ]
+  }
+]
