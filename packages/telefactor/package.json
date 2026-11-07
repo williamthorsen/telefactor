@@ -46,6 +46,8 @@
     }
   },
   "files": [
+    ".meta/changelog.json",
+    "CHANGELOG.md",
     "dist"
   ],
   "scripts": {
