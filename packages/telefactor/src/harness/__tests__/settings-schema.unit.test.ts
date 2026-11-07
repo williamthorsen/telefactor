@@ -2,7 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { BUILT_IN_HARNESSES } from '../built-in-harnesses.ts';
-import { buildHarnessConfigSchema, BUILT_IN_SETTINGS, findHarness, harnessConfigSchema } from '../settings-schema.ts';
+import {
+  buildHarnessConfigSchema,
+  BUILT_IN_SETTINGS,
+  findHarness,
+  harnessConfigSchema,
+  resolveBuiltInHarnesses,
+} from '../settings-schema.ts';
+
+const CONVERT = { command: ['claude', '-p', '--allowedTools', 'Read'] };
+
+const APP_BUILT_IN = {
+  default: 'convert',
+  harnesses: { convert: CONVERT, review: { command: ['codex', 'exec', '-'] } },
+};
 
 describe('harnessConfigSchema', () => {
   it('applies the built-in harnesses and defaults to an empty config', () => {
@@ -94,10 +107,73 @@ describe(buildHarnessConfigSchema, () => {
     expect(result.error?.issues.map((issue) => issue.path)).toStrictEqual([['promptsDirectory'], ['default']]);
   });
 
+  it("applies the app's built-in harnesses to a config without harnesses", () => {
+    const schema = buildHarnessConfigSchema(z.object({}), APP_BUILT_IN);
+
+    expect(schema.parse({})).toStrictEqual({ ...APP_BUILT_IN, timeoutMinutes: 10, app: {} });
+    expect(schema.parse({ default: 'review' }).default).toBe('review');
+  });
+
+  it("requires a config's default to name one of the app's built-in harnesses", () => {
+    const result = buildHarnessConfigSchema(z.object({}), APP_BUILT_IN).safeParse({ default: 'codex' });
+
+    expect(result.error?.issues).toMatchObject([
+      { path: ['default'], message: '"codex" does not name a harness. Name one of: convert, review' },
+    ]);
+  });
+
+  it("replaces the app's built-in harnesses with the harnesses that a config defines", () => {
+    const parsed = buildHarnessConfigSchema(z.object({}), APP_BUILT_IN).parse({
+      harnesses: { mine: { command: ['mine'] } },
+    });
+
+    expect(parsed).toMatchObject({ default: 'mine', harnesses: { mine: { command: ['mine'] } } });
+  });
+
+  it('throws for invalid built-in harnesses', () => {
+    expect(() => buildHarnessConfigSchema(z.object({}), { harnesses: {} })).toThrow(
+      'The built-in harnesses are invalid: builtIn.harnesses: Define at least one harness.',
+    );
+  });
+
   it('throws for an app key that the package defines', () => {
     expect(() => buildHarnessConfigSchema(z.object({ timeoutMinutes: z.number() }))).toThrow(
       "The app config may not define timeoutMinutes, which the package's config defines.",
     );
+  });
+});
+
+describe(resolveBuiltInHarnesses, () => {
+  it('returns the harnesses with their default', () => {
+    expect(resolveBuiltInHarnesses(APP_BUILT_IN)).toStrictEqual(APP_BUILT_IN);
+  });
+
+  it('defaults to the only harness', () => {
+    expect(resolveBuiltInHarnesses({ harnesses: { convert: CONVERT } })).toStrictEqual({
+      default: 'convert',
+      harnesses: { convert: CONVERT },
+    });
+  });
+
+  it.each([
+    [
+      'an invalid recipe',
+      { harnesses: { a: { command: [] } } },
+      'builtIn.harnesses.a.command: Give at least one argument',
+    ],
+    ['an empty harness record', { harnesses: {} }, 'builtIn.harnesses: Define at least one harness'],
+    [
+      'a default that names none of the harnesses',
+      { default: 'toString', harnesses: { a: CONVERT } },
+      'builtIn.default: "toString" does not name a harness. Name one of: a',
+    ],
+    [
+      'several harnesses without a default',
+      { harnesses: { a: CONVERT, b: CONVERT } },
+      'builtIn.default: Name the default harness, one of: a, b',
+    ],
+  ])('throws for %s', (_case, builtIn, problem) => {
+    expect(() => resolveBuiltInHarnesses(builtIn)).toThrow(problem);
   });
 });
 

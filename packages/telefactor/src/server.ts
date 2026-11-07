@@ -29,6 +29,7 @@ export { HARNESS_TEST_TIMEOUT_MS, runHarnessTest } from './harness/run-harness-t
 export {
   buildHarnessConfigSchema,
   BUILT_IN_SETTINGS,
+  type BuiltInHarnesses,
   DEFAULT_TIMEOUT_MINUTES,
   type EmptyAppConfig,
   findHarness,
@@ -36,6 +37,7 @@ export {
   harnessConfigSchema,
   type HarnessSettings,
   MAX_TIMEOUT_MINUTES,
+  resolveBuiltInHarnesses,
 } from './harness/settings-schema.ts';
 export { createTelefactorApp, type TelefactorAppOptions, type TerminalRoutesOptions } from './http/create-app.ts';
 export {

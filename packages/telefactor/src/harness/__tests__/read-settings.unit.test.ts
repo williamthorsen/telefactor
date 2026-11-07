@@ -8,6 +8,11 @@ import { z } from 'zod';
 import { HARNESS_COMMAND_VARIABLE, readEnvironmentCommand, readHarnessSettings } from '../read-settings.ts';
 import { BUILT_IN_SETTINGS } from '../settings-schema.ts';
 
+const APP_BUILT_IN = {
+  default: 'convert',
+  harnesses: { convert: { command: ['claude', '-p'] }, review: { command: ['codex'] } },
+};
+
 describe(readHarnessSettings, () => {
   it('returns the built-in settings when there is no file and no variable', async () => {
     const { configPath } = await createConfigPath();
@@ -18,6 +23,56 @@ describe(readHarnessSettings, () => {
       hasConfigFile: false,
       settings: BUILT_IN_SETTINGS,
     });
+  });
+
+  it("returns the app's built-in harnesses when there is no file and no variable", async () => {
+    const { configPath } = await createConfigPath();
+
+    expect(await readHarnessSettings({ env: {}, configPath, builtIn: APP_BUILT_IN })).toStrictEqual({
+      ok: true,
+      source: 'built-in',
+      configPath,
+      hasConfigFile: false,
+      settings: { ...APP_BUILT_IN, timeoutMinutes: 10, app: {} },
+    });
+  });
+
+  it("replaces the app's built-in harnesses with the file's", async () => {
+    const { configPath } = await createConfigPath();
+    await writeFile(configPath, JSON.stringify({ harnesses: { mine: { command: ['mine'] } } }));
+
+    expect(await readHarnessSettings({ env: {}, configPath, builtIn: APP_BUILT_IN })).toMatchObject({
+      source: 'file',
+      settings: { default: 'mine', harnesses: { mine: { command: ['mine'] } } },
+    });
+  });
+
+  it("replaces the app's built-in harnesses with the variable", async () => {
+    const { configPath } = await createConfigPath();
+    const env = { [HARNESS_COMMAND_VARIABLE]: '["my-agent"]' };
+
+    expect(await readHarnessSettings({ env, configPath, builtIn: APP_BUILT_IN })).toMatchObject({
+      source: 'environment',
+      settings: { default: 'environment', harnesses: { environment: { command: ['my-agent'] } } },
+    });
+  });
+
+  it("returns the app's values beside the app's built-in harnesses", async () => {
+    const { configPath } = await createConfigPath();
+    const config = z.object({ promptsDirectory: z.string().default('prompts') });
+
+    expect(await readHarnessSettings({ env: {}, configPath, builtIn: APP_BUILT_IN, config })).toMatchObject({
+      source: 'built-in',
+      settings: { default: 'convert', app: { promptsDirectory: 'prompts' } },
+    });
+  });
+
+  it('throws for invalid built-in harnesses', async () => {
+    const { configPath } = await createConfigPath();
+
+    expect(() => readHarnessSettings({ env: {}, configPath, builtIn: { harnesses: {} } })).toThrow(
+      'The built-in harnesses are invalid',
+    );
   });
 
   it('reads harnesses from the file', async () => {

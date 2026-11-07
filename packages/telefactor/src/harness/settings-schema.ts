@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { formatIssuePath } from '#src/schemas/problem.ts';
+
 import { BUILT_IN_DEFAULT_HARNESS, BUILT_IN_HARNESSES } from './built-in-harnesses.ts';
 
 /** The timeout, in minutes, that applies when the config sets none. */
@@ -32,6 +34,42 @@ export const harnessSchema = z
 
 export type Harness = z.output<typeof harnessSchema>;
 
+/** The harnesses that an app supplies in place of the package's recipes, shaped like the config file's keys. */
+export interface BuiltInHarnesses {
+  harnesses: Readonly<Record<string, Harness>>;
+  /** The harness that runs a job whose request names none; may be omitted when `harnesses` defines one. */
+  default?: string;
+}
+
+const builtInHarnessesSchema = z
+  .strictObject({ default: z.string().optional(), harnesses: z.record(z.string(), harnessSchema) })
+  .transform((builtIn, context) => {
+    const names = Object.keys(builtIn.harnesses);
+    if (names.length === 0) {
+      context.addIssue({ code: 'custom', path: ['harnesses'], message: 'Define at least one harness' });
+      return z.NEVER;
+    }
+    const defaultName = checkDefaultName(builtIn.harnesses, builtIn.default ?? findOnlyName(names), context);
+    if (defaultName === undefined) return z.NEVER;
+    return { default: defaultName, harnesses: builtIn.harnesses };
+  });
+
+/**
+ * Validates the harnesses that an app supplies and returns them with their default, which is the only harness when
+ * they name none. Throws on an invalid recipe, an empty `harnesses`, a `default` that names none of them, and several
+ * harnesses without a `default`.
+ */
+export function resolveBuiltInHarnesses(builtIn: BuiltInHarnesses): Required<BuiltInHarnesses> {
+  const parsed = builtInHarnessesSchema.safeParse(builtIn);
+  if (!parsed.success) {
+    const problems = parsed.error.issues.map(
+      (issue) => `${formatIssuePath(['builtIn', ...issue.path])}: ${issue.message}`,
+    );
+    throw new Error(`The built-in harnesses are invalid: ${problems.join('; ')}.`);
+  }
+  return parsed.data;
+}
+
 /** The app config schema that applies when the options name none: an app without keys of its own. */
 const EMPTY_APP_CONFIG_SCHEMA = z.object({});
 
@@ -47,17 +85,23 @@ const PACKAGE_CONFIG_SHAPE = {
 
 /**
  * Builds the schema of a config file that holds the package's keys and the app's. The file stays strict, so that a key
- * that neither defines is reported, and the app's values are parsed by its own schema into `app`. Throws when the app's
- * schema names a key that the package defines.
+ * that neither defines is reported, and the app's values are parsed by its own schema into `app`. A file that does not
+ * define `harnesses` gets the app's built-in harnesses when given, else the package's recipes. Throws when the app's
+ * schema names a key that the package defines, and on invalid built-in harnesses.
  */
 export function buildHarnessConfigSchema<S extends z.ZodObject>(
   appConfigSchema: S,
+  builtIn?: BuiltInHarnesses,
 ): z.ZodType<HarnessSettings<z.output<S>>> {
   const appKeys = Object.keys(appConfigSchema.shape);
   const collisions = appKeys.filter((key) => Object.hasOwn(PACKAGE_CONFIG_SHAPE, key));
   if (collisions.length > 0) {
     throw new Error(`The app config may not define ${collisions.join(', ')}, which the package's config defines.`);
   }
+  const fallback =
+    builtIn === undefined
+      ? { default: BUILT_IN_DEFAULT_HARNESS, harnesses: BUILT_IN_HARNESSES }
+      : resolveBuiltInHarnesses(builtIn);
   // Let the app's keys through the strict object; the app's own schema parses them below.
   const appPassThrough = Object.fromEntries(appKeys.map((key) => [key, z.unknown().optional()]));
 
@@ -69,29 +113,11 @@ export function buildHarnessConfigSchema<S extends z.ZodObject>(
         context.addIssue({ code: 'custom', path: issue.path, message: issue.message });
     }
 
-    const harnesses = configuredHarnesses ?? BUILT_IN_HARNESSES;
-    const names = Object.keys(harnesses);
-    const [onlyName] = names;
-    const fallback =
-      configuredHarnesses === undefined ? BUILT_IN_DEFAULT_HARNESS : names.length === 1 ? onlyName : undefined;
-    const defaultName = configuredDefault ?? fallback;
-    if (defaultName === undefined) {
-      context.addIssue({
-        code: 'custom',
-        path: ['default'],
-        message: `Name the default harness, one of: ${names.join(', ')}`,
-      });
-      return z.NEVER;
-    }
-    if (!Object.hasOwn(harnesses, defaultName)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['default'],
-        message: `"${defaultName}" does not name a harness. Name one of: ${names.join(', ')}`,
-      });
-      return z.NEVER;
-    }
-    if (!app.success) return z.NEVER;
+    const harnesses = configuredHarnesses ?? fallback.harnesses;
+    const unnamedDefault =
+      configuredHarnesses === undefined ? fallback.default : findOnlyName(Object.keys(configuredHarnesses));
+    const defaultName = checkDefaultName(harnesses, configuredDefault ?? unnamedDefault, context);
+    if (defaultName === undefined || !app.success) return z.NEVER;
     return { default: defaultName, timeoutMinutes, harnesses, app: app.data };
   });
 }
@@ -126,3 +152,32 @@ export const BUILT_IN_SETTINGS: HarnessSettings = {
 export function findHarness(settings: HarnessSettings<unknown>, name: string): Harness | undefined {
   return Object.hasOwn(settings.harnesses, name) ? settings.harnesses[name] : undefined;
 }
+
+// region | Helpers
+/** Returns the default harness's name, or reports at `default` that it is missing or names none of the harnesses. */
+function checkDefaultName(
+  harnesses: Readonly<Record<string, Harness>>,
+  defaultName: string | undefined,
+  context: z.RefinementCtx,
+): string | undefined {
+  const names = Object.keys(harnesses).join(', ');
+  if (defaultName === undefined) {
+    context.addIssue({ code: 'custom', path: ['default'], message: `Name the default harness, one of: ${names}` });
+    return undefined;
+  }
+  if (!Object.hasOwn(harnesses, defaultName)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['default'],
+      message: `"${defaultName}" does not name a harness. Name one of: ${names}`,
+    });
+    return undefined;
+  }
+  return defaultName;
+}
+
+/** Returns the name when there is exactly one. */
+function findOnlyName(names: readonly string[]): string | undefined {
+  return names.length === 1 ? names[0] : undefined;
+}
+// endregion | Helpers

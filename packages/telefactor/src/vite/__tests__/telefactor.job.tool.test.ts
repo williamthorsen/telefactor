@@ -8,11 +8,11 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { defineJob } from '#src/contract/define-job.ts';
-import { readHarnessSettings } from '#src/harness/read-settings.ts';
+import { HARNESS_COMMAND_VARIABLE, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { implementJob } from '#src/jobs/implement-job.ts';
-import { buildJobSchema } from '#src/jobs/job-schemas.ts';
+import { buildJobSchema, jobSchema as promptJobSchema } from '#src/jobs/job-schemas.ts';
 
-import { telefactor } from '../telefactor.ts';
+import { telefactor, type TelefactorPluginOptions } from '../telefactor.ts';
 
 const COMMAND_VARIABLE = 'APP_HARNESS_COMMAND';
 const APP_CONFIG_SCHEMA = z.object({ promptsDirectory: z.string().default('prompts') });
@@ -48,19 +48,13 @@ beforeAll(async () => {
       };
     },
   });
-  const server = await createServer({
-    root: state.root,
-    configFile: false,
-    logLevel: 'silent',
-    server: { host: '127.0.0.1', port: 0, strictPort: true },
-    plugins: [telefactor({ commandVariable: COMMAND_VARIABLE, config: APP_CONFIG_SCHEMA, job })],
+  const started = await startServer(state.root, {
+    commandVariable: COMMAND_VARIABLE,
+    config: APP_CONFIG_SCHEMA,
+    job,
   });
-  await server.listen();
-  state.server = server;
-  const address = server.httpServer?.address();
-  if (address === null || address === undefined || typeof address === 'string')
-    throw new Error('Expected a TCP address.');
-  state.origin = `http://127.0.0.1:${(address satisfies AddressInfo).port}`;
+  state.server = started.server;
+  state.origin = started.origin;
 });
 
 afterAll(async () => {
@@ -102,8 +96,97 @@ describe('telefactor with an app job', () => {
   });
 });
 
+describe("telefactor with the app's built-in harnesses", () => {
+  const builtInState: { root: string; server: ViteDevServer | undefined; origin: string } = {
+    root: '',
+    server: undefined,
+    origin: '',
+  };
+
+  beforeAll(async () => {
+    vi.stubEnv(HARNESS_COMMAND_VARIABLE, undefined);
+    builtInState.root = await mkdtemp(path.join(tmpdir(), 'telefactor-built-in-'));
+    const started = await startServer(builtInState.root, {
+      builtIn: {
+        default: 'convert',
+        harnesses: { convert: buildEchoHarness('convert'), review: buildEchoHarness('review') },
+      },
+    });
+    builtInState.server = started.server;
+    builtInState.origin = started.origin;
+  });
+
+  afterAll(async () => {
+    await builtInState.server?.close();
+    await rm(builtInState.root, { recursive: true, force: true });
+  });
+
+  it("lists the app's harnesses as built-in and runs a job through the app's default", async () => {
+    const harnesses = await (await fetch(`${builtInState.origin}/api/telefactor/harnesses`)).json();
+    const started = await fetch(`${builtInState.origin}/api/telefactor/jobs`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'hello' }),
+    });
+    expect(started.status).toBe(201);
+    const job = promptJobSchema.parse(await started.json());
+
+    expect(harnesses).toMatchObject({
+      source: 'built-in',
+      hasConfigFile: false,
+      defaultHarness: 'convert',
+      harnesses: [{ name: 'convert' }, { name: 'review' }],
+    });
+    await expect
+      .poll(
+        async () =>
+          promptJobSchema.parse(await (await fetch(`${builtInState.origin}/api/telefactor/jobs/${job.id}`)).json()),
+        { timeout: 5000 },
+      )
+      .toMatchObject({ status: 'done', result: { output: 'convert: hello' } });
+  });
+});
+
 describe(telefactor, () => {
   it('throws when created with an app config key that the package defines', () => {
     expect(() => telefactor({ config: z.object({ harnesses: z.string() }) })).toThrow('may not define harnesses');
   });
+
+  it('throws when created with invalid built-in harnesses', () => {
+    expect(() => telefactor({ builtIn: { harnesses: { a: { command: ['a'] }, b: { command: ['b'] } } } })).toThrow(
+      'builtIn.default: Name the default harness',
+    );
+  });
 });
+
+// region | Helpers
+/** Builds a harness whose command writes its name and the prompt that it reads on stdin. */
+function buildEchoHarness(name: string): { command: string[] } {
+  return {
+    command: [
+      process.execPath,
+      '--eval',
+      `process.stdout.write(${JSON.stringify(`${name}: `)} + require('node:fs').readFileSync(0, 'utf8'))`,
+    ],
+  };
+}
+
+/** Starts a dev server in the root with the plugin, and returns it with its origin. */
+async function startServer(
+  root: string,
+  options: TelefactorPluginOptions,
+): Promise<{ server: ViteDevServer; origin: string }> {
+  const server = await createServer({
+    root,
+    configFile: false,
+    logLevel: 'silent',
+    server: { host: '127.0.0.1', port: 0, strictPort: true },
+    plugins: [telefactor(options)],
+  });
+  await server.listen();
+  const address = server.httpServer?.address();
+  if (address === null || address === undefined || typeof address === 'string')
+    throw new Error('Expected a TCP address.');
+  return { server, origin: `http://127.0.0.1:${(address satisfies AddressInfo).port}` };
+}
+// endregion | Helpers
