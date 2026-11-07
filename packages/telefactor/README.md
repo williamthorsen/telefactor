@@ -154,9 +154,9 @@ The plugin chooses its harnesses from the first of these sources that defines an
 
 1. The `TELEFACTOR_HARNESS_COMMAND` environment variable, or the one that the `commandVariable` option names.
 2. The config file.
-3. The built-in recipes for `claude-code` (the default), `codex`, and `rovo-dev`, defined in [`built-in-harnesses.ts`](https://github.com/williamthorsen/telefactor/blob/main/packages/telefactor/src/harness/built-in-harnesses.ts).
+3. The built-in harnesses: the plugin's `builtIn` option when set, else the package's recipes for `claude-code` (the default), `codex`, and `rovo-dev`, defined in [`built-in-harnesses.ts`](https://github.com/williamthorsen/telefactor/blob/main/packages/telefactor/src/harness/built-in-harnesses.ts).
 
-A request names a harness; no route accepts a command. Each built-in recipe runs with its harness's default permission mode, so a tool that needs approval is denied in a headless run. To grant more, define the harness in the config file with the flags that the harness's CLI documents.
+A request names a harness; no route accepts a command. Each built-in recipe runs with its harness's default permission mode, so a tool that needs approval is denied in a headless run. To grant more, define the harness in the config file, or in the `builtIn` option, with the flags that the harness's CLI documents.
 
 ### Config file
 
@@ -191,6 +191,8 @@ telefactor({ config: appConfig });
 const resolved = await readHarnessSettings({ env: process.env, configPath, config: appConfig });
 if (resolved.ok) console.log(resolved.settings.app.promptsDirectory);
 ```
+
+`readHarnessSettings` also takes the plugin's `builtIn` value, so that the settings that an app reads, or writes out as a config template, are the ones that the plugin runs.
 
 ### Environment variable
 
@@ -244,6 +246,7 @@ const started = await client.startJob({ prompt: 'Draft a note', name: 'today' })
 | Option             | Default                      | Effect                                                                    |
 | ------------------ | ---------------------------- | ------------------------------------------------------------------------- |
 | `basePath`         | `/api/telefactor`            | The path under which the routes are mounted.                              |
+| `builtIn`          | the package's recipes        | The [built-in harnesses](#harnesses), as `{ harnesses, default }`.        |
 | `commandVariable`  | `TELEFACTOR_HARNESS_COMMAND` | The [environment variable](#environment-variable) that defines a harness. |
 | `config`           | none                         | The zod object of the app's own keys in the [config file](#config-file).  |
 | `configPath`       | `telefactor.config.json`     | The config file, resolved against the Vite root.                          |
