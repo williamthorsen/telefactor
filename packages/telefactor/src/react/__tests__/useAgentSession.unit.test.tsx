@@ -126,6 +126,19 @@ describe(useAgentSession, () => {
     expect(result.current.error).toBeUndefined();
   });
 
+  it("keeps a refused call's error when a snapshot arrives", async () => {
+    const refusal = new TelefactorRequestError(400, 'Enter an amount.');
+    const fake = createFakeCounterClient({ call: () => Promise.reject(refusal) });
+    const { result } = renderHook(() => useAgentSession(fake.client));
+    await act(async () => {
+      await result.current.call('add', { amount: 1 });
+    });
+
+    act(() => fake.push({ version: 1, state: { count: 1 }, change: AGENT_ADD }));
+
+    expect(result.current.error).toBe(refusal);
+  });
+
   it('keeps the identity of call across renders', () => {
     const fake = createFakeCounterClient();
     const { result, rerender } = renderHook(() => useAgentSession(fake.client));

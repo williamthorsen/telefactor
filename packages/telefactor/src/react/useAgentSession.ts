@@ -22,7 +22,7 @@ export interface AgentSession<C extends Contract> {
   version: number | undefined;
   /** Runs an action and resolves whether it committed; a refusal sets `error` rather than rejecting. */
   call: <K extends ActionName<C>>(name: K, input: ActionInput<C, K>) => Promise<boolean>;
-  /** The latest refused call or dropped stream; the next snapshot clears either, and the next committed call its own. */
+  /** The latest refused call or dropped stream; the next committed call clears a refusal, and the next snapshot a drop. */
   error: unknown;
   /**
    * The latest commit made by the agent since the hook subscribed. Render its text in a child keyed by its `version`,
@@ -53,7 +53,8 @@ export function useAgentSession<C extends Contract>(
     let lastVersion: number | undefined;
     return client.subscribe(
       (next) => {
-        setFailure(undefined);
+        // A snapshot shows that the stream recovered, not that a refused call succeeded.
+        setFailure((current) => (current?.source === 'stream' ? undefined : current));
         if (lastVersion !== undefined && next.version <= lastVersion) return;
         const isBaseline = lastVersion === undefined;
         lastVersion = next.version;
