@@ -17,6 +17,10 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   const runButton = useRef<HTMLButtonElement>(null);
   const promptField = useRef<HTMLTextAreaElement>(null);
   const shouldRestoreFocus = useRef(false);
+  // A settled cancel stops the poll at once; the effect's cleanup would run only after React commits.
+  const stopPolling = useRef<() => void>(undefined);
+  // Counts the jobs started; a cancel that settles after a later start belongs to a job no longer shown.
+  const startCount = useRef(0);
 
   // Cancel unmounts when the job stops running; keep keyboard focus in the form.
   useEffect(() => {
@@ -43,10 +47,12 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
       }
     }
     const timer = setTimeout(() => void poll(job.id), pollIntervalMs);
-    return () => {
+    function stop(): void {
       isCurrent = false;
       clearTimeout(timer);
-    };
+    }
+    stopPolling.current = stop;
+    return stop;
   }, [client, error, job, pollIntervalMs]);
 
   /** Records whether Cancel has focus, ahead of a state change that unmounts it. */
@@ -57,6 +63,7 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   async function startJob(event: SyntheticEvent): Promise<void> {
     event.preventDefault();
     if (isRunning || isStarting) return;
+    startCount.current += 1;
     setIsStarting(true);
     setError(undefined);
     try {
@@ -69,11 +76,16 @@ export function JobPanel({ client, harness, pollIntervalMs = DEFAULT_POLL_INTERV
   }
 
   async function cancelJob(id: string): Promise<void> {
+    const startCountAtCancel = startCount.current;
     try {
       const cancelled = await client.cancelJob(id);
+      if (startCount.current !== startCountAtCancel) return;
+      stopPolling.current?.();
       noteCancelFocus();
       setJob(cancelled);
     } catch (cancelError: unknown) {
+      if (startCount.current !== startCountAtCancel) return;
+      stopPolling.current?.();
       noteCancelFocus();
       setError(cancelError);
     }
