@@ -10,7 +10,7 @@ export const MAX_OUTPUT_BYTES = 1024 * 1024;
 
 /**
  * Creates the job run that prepares a job, executes the harness command in the working directory with the job's
- * placeholders expanded, and returns the result that the job reads and its schema parses. The job's `release` runs once
+ * placeholders expanded, and returns the result that the job reads, once its schema accepts it. The job's `release` runs once
  * the command has ended. `job` defaults to the built-in prompt job.
  */
 export function createHarnessRun({
@@ -37,7 +37,7 @@ export function createHarnessRun({
       });
       const failure = describeRunFailure(harness, run, maxStdoutBytes);
       if (failure !== undefined) throw new Error(failure);
-      result = parseResult(job, await prepared.read({ stdout: run.stdout, stderrTail: run.stderrTail }));
+      result = checkResult(job, await prepared.read({ stdout: run.stdout, stderrTail: run.stderrTail }));
     } catch (error) {
       await releaseQuietly(prepared, readOutcome(signal, 'failed'));
       throw error;
@@ -68,10 +68,10 @@ function formatBytes(bytes: number): string {
   return bytes % (1024 * 1024) === 0 ? `${bytes / (1024 * 1024)} MiB` : `${bytes} bytes`;
 }
 
-/** Parses a job's result with its declaration's schema; throws with the schema's issues. */
-function parseResult(job: JobImplementation, value: unknown): unknown {
+/** Checks a job's result against its declaration's schema and returns it unparsed; throws with the schema's issues. */
+function checkResult(job: JobImplementation, value: unknown): unknown {
   const parsed = job.declaration.result.safeParse(value);
-  if (parsed.success) return parsed.data;
+  if (parsed.success) return value;
   const issues = parsed.error.issues.map((issue) => {
     const path = formatIssuePath(issue.path);
     return path === '' ? issue.message : `${path}: ${issue.message}`;

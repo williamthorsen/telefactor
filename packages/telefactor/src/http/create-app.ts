@@ -66,8 +66,12 @@ export function createTelefactorApp<E extends Env>({
   terminal,
 }: TelefactorAppOptions<E>): Hono<E> {
   const app = new Hono<E>();
-  // A strict schema reports a misspelt field rather than dropping it.
-  const jobRequestSchema = z.strictObject({ ...startJobRequestSchema.shape, ...job.input.shape });
+  // The strict schema reports a misspelt field and passes the job's fields through unparsed, so that the run parses
+  // them once and a transforming field reaches it in its input form.
+  const jobFieldsPassThrough = Object.fromEntries(
+    Object.keys(job.input.shape).map((key) => [key, z.unknown().optional()]),
+  );
+  const jobRequestSchema = z.strictObject({ ...startJobRequestSchema.shape, ...jobFieldsPassThrough });
 
   app.use(async (context, next) => {
     if (isAllowed(context)) {
@@ -115,9 +119,12 @@ export function createTelefactorApp<E extends Env>({
     if (!body.ok) return body.response;
     const parsed = jobRequestSchema.safeParse(body.value);
     if (!parsed.success) return context.json({ problems: describeIssues(parsed.error.issues) }, 400);
+    const { prompt, harness: requestedHarness, ...input } = parsed.data;
+    const parsedInput = job.input.safeParse(input);
+    if (!parsedInput.success) return context.json({ problems: describeIssues(parsedInput.error.issues) }, 400);
     const resolved = await readSettings();
     if (!resolved.ok) return context.json({ problems: resolved.problems }, 400);
-    const { prompt, harness: harnessName = resolved.settings.default, ...input } = parsed.data;
+    const harnessName = requestedHarness ?? resolved.settings.default;
     const harness = findHarness(resolved.settings, harnessName);
     if (harness === undefined) {
       return context.json(

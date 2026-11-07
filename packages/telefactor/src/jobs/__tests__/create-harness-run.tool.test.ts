@@ -40,6 +40,33 @@ describe(createHarnessRun, () => {
     expect(fixture.releases).toStrictEqual(['done']);
   });
 
+  it('parses a transforming input once and returns a transforming result in its input form', async () => {
+    const declaration = defineJob({
+      input: z.object({ count: z.string().transform((value) => value.length) }),
+      result: z.object({ at: z.iso.datetime().transform((value) => new Date(value)) }),
+    });
+    const counts: number[] = [];
+    const job = implementJob(declaration, {
+      prepare: ({ input }) => {
+        counts.push(input.count);
+        return Promise.resolve({
+          placeholders: {},
+          stdin: '',
+          read: () => Promise.resolve({ at: '2026-11-07T12:00:00Z' }),
+        });
+      },
+    });
+    const run = createHarnessRun({ workingDirectory: tmpdir(), job });
+
+    const result = await run(
+      buildInput({ command: [process.execPath, '--eval', ''], input: { count: 'abc' } }),
+      new AbortController().signal,
+    );
+
+    expect(counts).toStrictEqual([3]);
+    expect(result).toStrictEqual({ at: '2026-11-07T12:00:00Z' });
+  });
+
   it('reports a non-zero exit with the stderr tail and releases the run as failed', async () => {
     const fixture = await createFileJob();
 

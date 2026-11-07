@@ -28,6 +28,16 @@ describe(createTelefactorClient, () => {
     expect(bodies).toStrictEqual(['{"prompt":"hi","name":"note"}']);
   });
 
+  it("parses a transforming result once, from the server's wire form", async () => {
+    const job = defineJob({ result: z.object({ at: z.iso.datetime().transform((value) => new Date(value)) }) });
+    const client = createTelefactorClient({
+      job,
+      fetch: () => Promise.resolve(Response.json({ ...JOB, status: 'done', result: { at: '2026-11-07T12:00:00Z' } })),
+    });
+
+    expect((await client.getJob('a/b')).result?.at).toStrictEqual(new Date('2026-11-07T12:00:00Z'));
+  });
+
   it("rejects a job whose result does not match the job's schema", async () => {
     const job = defineJob({ result: z.object({ text: z.string() }) });
     const client = createTelefactorClient({

@@ -119,6 +119,19 @@ describe(createTelefactorApp, () => {
     expect(await refused.json()).toMatchObject({ problems: [{ path: 'name' }] });
   });
 
+  it("passes a transforming field in its input form, and refuses one that the job's refinement rejects", async () => {
+    const input = z
+      .object({ count: z.string().transform((value) => value.length) })
+      .refine(({ count }) => count < 4, { path: ['count'], message: 'Too long' });
+    const { app, starts } = createFixture({ job: defineJob({ input, result: z.unknown() }) });
+
+    expect((await postJob(app, { prompt: 'hi', count: 'abc' })).status).toBe(201);
+    const refused = await postJob(app, { prompt: 'hi', count: 'abcd' });
+
+    expect(starts.map((start) => start.input)).toStrictEqual([{ count: 'abc' }]);
+    expect(await refused.json()).toMatchObject({ problems: [{ path: 'count', message: 'Too long.' }] });
+  });
+
   it('refuses a body that is not JSON', async () => {
     const { app } = createFixture();
 

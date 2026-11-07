@@ -1,4 +1,6 @@
-import type { JobDeclaration, JobResult, ParsedJobInput } from '#src/contract/define-job.ts';
+import type { z } from 'zod';
+
+import type { JobDeclaration, ParsedJobInput } from '#src/contract/define-job.ts';
 
 /** How a job ended, as its run learns it once the command has ended. A timed-out job's status is `failed`. */
 export type JobOutcome = 'cancelled' | 'done' | 'failed' | 'timed-out';
@@ -16,7 +18,11 @@ export interface JobRunContext<I> {
 export interface PreparedRun<R> {
   placeholders: Readonly<Record<string, string>>;
   stdin: string;
-  /** Reads the result once the command has exited with code 0; a rejection fails the job with its message. */
+  /**
+   * Reads the result once the command has exited with code 0, in the form that the result schema parses, which must
+   * survive JSON: The server checks it against the schema and returns it as read, and the client parses it once. A
+   * rejection fails the job with its message.
+   */
   read(run: { stdout: string; stderrTail: string }): Promise<R>;
   /**
    * Releases what `prepare` set up. Called once, after the command has ended or after an abort that lands before the
@@ -32,7 +38,7 @@ export interface JobImplementation<J extends JobDeclaration = JobDeclaration> {
    * Prepares one run, before the command starts. A rejection fails the job, and `prepare` undoes its own partial work
    * before rejecting, because `release` is not called.
    */
-  prepare(context: JobRunContext<ParsedJobInput<J>>, signal: AbortSignal): Promise<PreparedRun<JobResult<J>>>;
+  prepare(context: JobRunContext<ParsedJobInput<J>>, signal: AbortSignal): Promise<PreparedRun<z.input<J['result']>>>;
 }
 
 /** Implements a declared job on the server, for the plugin's `job` option. */
