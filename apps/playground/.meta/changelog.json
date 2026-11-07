@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.1.1",
+    "date": "2026-11-07",
+    "sections": [
+      {
+        "title": "📦 Dependencies",
+        "audience": "dev",
+        "items": [{ "description": "Bumped `@williamthorsen/telefactor` to 0.2.0" }]
+      }
+    ]
+  },
+  {
     "version": "0.1.0",
     "date": "2026-11-07",
     "sections": [

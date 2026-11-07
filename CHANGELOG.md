@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.0 — 2026-11-07
+
+### 🎉 Features
+
+- Adds a `job` option to the Vite plugin, which runs an app-defined job declared with `defineJob` and implemented with `implementJob`: `POST /jobs` accepts the job's own request fields and refuses one that the job does not take, the job's `prepare` step supplies the harness command's placeholder values and reads the result, and `createTelefactorClient({ job })` types the request and the result by the declaration. (#21)
+- Adds a `config` option to the Vite plugin, a zod object that declares the app's own keys in `telefactor.config.json`, which `readHarnessSettings` returns as `settings.app` with their defaults when the file is absent; the plugin still reports any other unknown key and refuses a schema that names one of the package's keys. (#21)
+- Adds a `commandVariable` option to the Vite plugin, which names the environment variable that is read in place of `TELEFACTOR_HARNESS_COMMAND` and is named in the error for a malformed value. (#21)
+
 ## 0.1.0 — 2026-11-07
 
 ### 🎉 Features

@@ -1,5 +1,32 @@
 [
   {
+    "version": "0.2.0",
+    "date": "2026-11-07",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Adds a `job` option to the Vite plugin, which runs an app-defined job declared with `defineJob` and implemented with `implementJob`: `POST /jobs` accepts the job's own request fields and refuses one that the job does not take, the job's `prepare` step supplies the harness command's placeholder values and reads the result, and `createTelefactorClient({ job })` types the request and the result by the declaration. (#21)",
+            "hash": "f4ad487903351337673c8f5b2ebf6051d2a2d931",
+            "entry": 1
+          },
+          {
+            "description": "Adds a `config` option to the Vite plugin, a zod object that declares the app's own keys in `telefactor.config.json`, which `readHarnessSettings` returns as `settings.app` with their defaults when the file is absent; the plugin still reports any other unknown key and refuses a schema that names one of the package's keys. (#21)",
+            "hash": "f4ad487903351337673c8f5b2ebf6051d2a2d931",
+            "entry": 2
+          },
+          {
+            "description": "Adds a `commandVariable` option to the Vite plugin, which names the environment variable that is read in place of `TELEFACTOR_HARNESS_COMMAND` and is named in the error for a malformed value. (#21)",
+            "hash": "f4ad487903351337673c8f5b2ebf6051d2a2d931",
+            "entry": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.1.0",
     "date": "2026-11-07",
     "sections": [
