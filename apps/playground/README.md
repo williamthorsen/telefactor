@@ -12,7 +12,7 @@ pnpm run dev
 
 The script compiles the package, then starts the dev server on `localhost`. The page lists the harnesses, tests the selected one, runs it interactively in a terminal, and runs a prompt through it. The harnesses come from the package's built-in recipes unless this directory contains a `telefactor.config.json`; [Harnesses](../../packages/telefactor/README.md#harnesses) describes the config file.
 
-The page also shows a list of notes that the page and an agent share. A harness started in the terminal can already read and change them through the dev server's MCP endpoint; `/add-sample-note`, a skill in this directory, adds one. To connect a harness that runs outside the page, such as Claude Code in another terminal:
+The page also shows a list of notes that the page and an agent share, and it announces each change that the agent makes. A harness started in the terminal can already read and change them through the dev server's MCP endpoint; `/add-sample-note`, a skill in this directory, adds one. To connect a harness that runs outside the page, such as Claude Code in another terminal:
 
 ```shell
 claude mcp add --transport http playground http://localhost:5176/api/telefactor/mcp

@@ -80,20 +80,35 @@ const contract = implementContract(counterContract, {
 export default defineConfig({ plugins: [telefactor({ contract })] });
 ```
 
-```ts
-// in the page
+In the page, `useAgentSession` from the `./react` entry subscribes to the state and returns it with a typed `call`. Its `announcement` describes each change that the agent makes, for a status region:
+
+```tsx
 import { createContractClient } from '@williamthorsen/telefactor/client';
+import { RequestError, useAgentSession } from '@williamthorsen/telefactor/react';
 
 const client = createContractClient(counterContract);
-const unsubscribe = client.subscribe(({ state }) => render(state)); // the current state, then each change
-await client.call('add', { amount: 2 });
+
+function Counter() {
+  const { state, call, error, announcement } = useAgentSession(client);
+  return (
+    <>
+      <button type="button" onClick={() => void call('add', { amount: 2 })}>
+        Add 2 to {state?.count}
+      </button>
+      <p role="status">{announcement && <span key={announcement.version}>{announcement.text}</span>}</p>
+      {error !== undefined && <RequestError error={error} />}
+    </>
+  );
+}
 ```
+
+`call` resolves whether the action committed and never rejects; a refusal sets `error`. Without React, `client.subscribe(listener)` delivers the current snapshot, then each change, and `client.call(name, input)` runs an action.
 
 An action name must be a valid MCP tool name, and `get_state` is reserved. An action without `input` takes an empty object. The dev server holds one session state in memory, shared by every tab and reset on restart, and runs one action at a time. It commits a handler's result only when the state schema accepts it, so an action whose input fails its schema, whose handler throws, or whose result fails the state schema leaves the state unchanged.
 
 ### Connecting a harness
 
-A harness started in the [embedded terminal](#terminal) connects to the endpoint without any setup, except Rovo Dev. With a contract, the dev server logs its MCP endpoint when it starts, `http://localhost:<port>/api/telefactor/mcp` by default. It serves one tool per action and a `get_state` tool, each returning the resulting state with its `version`. To connect Claude Code:
+A harness started in the [embedded terminal](#terminal) connects to the endpoint without any setup, except Rovo Dev. With a contract, the dev server logs its MCP endpoint when it starts, `http://localhost:<port>/api/telefactor/mcp` by default. It serves one tool per action and a `get_state` tool, each returning the resulting state with its `version` and `change`. To connect Claude Code:
 
 ```shell
 claude mcp add --transport http my-app http://localhost:5173/api/telefactor/mcp
@@ -120,6 +135,18 @@ import '@williamthorsen/terminal-react/styles.css';
 ```
 
 The session runs the harness's `interactive` command in the working directory, with the recipe's `mcpArgs` appended when the plugin serves a contract, so that the agent can drive the page. A reload reattaches to the running session and restores its screen; the tab keeps the session's id in `sessionStorage`. The session ends when the user ends it, when the harness exits, or when the dev server closes, and the component says which. Its other props are `unavailableReason`, which disables Start session and shows the reason, `theme` (xterm's `ITheme`), and `className`. The custom property `--telefactor-terminal-height` sets the terminal's height, `20rem` by default.
+
+## Harness picker
+
+The `./react` entry also exports `HarnessPicker`, which lists the harnesses, preselects the default one, and tests the selected one. It reports the selected harness's entry, or `undefined` while none can run, as when the config file has problems:
+
+```tsx
+const [harness, setHarness] = useState<HarnessEntry>();
+
+<HarnessPicker client={client} harness={harness?.name} onHarnessChange={setHarness} />;
+```
+
+`HarnessEntry` comes from the `./client` entry. `RequestError` shows a failed request with the problems that the routes reported. Both components are unstyled and take a `className` for their root.
 
 ## Harnesses
 
@@ -188,7 +215,7 @@ The plugin mounts these routes on the dev server only (`vite build` and `vite pr
 
 With a contract, it also mounts:
 
-- `GET /state` reads the session state as `{ "version": …, "state": … }`, in which `version` counts the changes committed.
+- `GET /state` reads the session state as `{ "version": …, "state": …, "change": … }`, in which `version` counts the changes committed and `change` names the action that made the latest one and its `origin`: `agent` for an MCP tool call, `page` for a route call. The state at version 0 does not have a `change`.
 - `GET /state/events` streams the state as server-sent `state` events: the current state on connect, then each change.
 - `POST /actions/:name` runs an action with a JSON body as its input and returns the new state. It refuses an unknown action with `404`, input that fails its schema with `400`, an action whose handler throws with `422`, and a handler result that fails the state schema with `500`.
 - `/mcp`, the MCP endpoint over Streamable HTTP.
