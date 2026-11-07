@@ -7,7 +7,7 @@ describe('notesImplementation', () => {
   it('adds a trimmed note with an id, without selecting it', async () => {
     const store = createStateStore(notesImplementation);
 
-    const outcome = await store.run('addNote', { text: '  Buy milk ' });
+    const outcome = await store.run('addNote', { text: '  Buy milk ' }, 'page');
 
     expect(outcome).toMatchObject({
       ok: true,
@@ -19,26 +19,29 @@ describe('notesImplementation', () => {
   it('refuses a blank note', async () => {
     const store = createStateStore(notesImplementation);
 
-    expect(await store.run('addNote', { text: ' ' })).toMatchObject({ ok: false, reason: 'invalid-input' });
+    expect(await store.run('addNote', { text: ' ' }, 'page')).toMatchObject({ ok: false, reason: 'invalid-input' });
   });
 
   it('selects a note, and clears the selection when it removes that note', async () => {
     const { store, id } = await createStoreWithNote();
 
-    expect(await store.run('selectNote', { id })).toMatchObject({ ok: true, snapshot: { state: { selectedId: id } } });
-    expect(await store.run('removeNote', { id })).toStrictEqual({
+    expect(await store.run('selectNote', { id }, 'page')).toMatchObject({
       ok: true,
-      snapshot: { version: 3, state: { notes: [] } },
+      snapshot: { state: { selectedId: id } },
+    });
+    expect(await store.run('removeNote', { id }, 'page')).toStrictEqual({
+      ok: true,
+      snapshot: { version: 3, state: { notes: [] }, change: { action: 'removeNote', origin: 'page' } },
     });
   });
 
   it('keeps the selection when it removes another note', async () => {
     const { store, id } = await createStoreWithNote();
-    await store.run('addNote', { text: 'Other' });
-    await store.run('selectNote', { id });
+    await store.run('addNote', { text: 'Other' }, 'page');
+    await store.run('selectNote', { id }, 'page');
     const other = noteIds(store)[1] ?? '';
 
-    expect(await store.run('removeNote', { id: other })).toMatchObject({
+    expect(await store.run('removeNote', { id: other }, 'page')).toMatchObject({
       ok: true,
       snapshot: { state: { selectedId: id } },
     });
@@ -47,7 +50,7 @@ describe('notesImplementation', () => {
   it.each(['selectNote', 'removeNote'])('refuses %s for an id that does not exist', async (name) => {
     const store = createStateStore(notesImplementation);
 
-    expect(await store.run(name, { id: 'missing' })).toStrictEqual({
+    expect(await store.run(name, { id: 'missing' }, 'page')).toStrictEqual({
       ok: false,
       reason: 'handler-failed',
       message: 'No note has the id "missing".',
@@ -58,7 +61,7 @@ describe('notesImplementation', () => {
 // region | Helpers
 async function createStoreWithNote() {
   const store = createStateStore(notesImplementation);
-  await store.run('addNote', { text: 'Note' });
+  await store.run('addNote', { text: 'Note' }, 'page');
   return { store, id: noteIds(store)[0] ?? '' };
 }
 
