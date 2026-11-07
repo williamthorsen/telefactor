@@ -20,6 +20,19 @@ export type JobInput<J extends JobDeclaration> = z.input<J['input']>;
 /** The fields that a job's run receives, after its schema parses them. */
 export type ParsedJobInput<J extends JobDeclaration> = z.output<J['input']>;
 
+/**
+ * The body that starts a job: the prompt, the harness, the default harness when omitted, and the job's own fields. A
+ * job without input adds none, because zod types an empty object's input as an index signature of `never`.
+ */
+export type JobRequest<J extends JobDeclaration> = [keyof J['input']['shape']] extends [never]
+  ? BaseJobRequest
+  : BaseJobRequest & JobInput<J>;
+
+interface BaseJobRequest {
+  prompt: string;
+  harness?: string | undefined;
+}
+
 /** The result of a finished job, as its schema parses it. */
 export type JobResult<J extends JobDeclaration> = z.output<J['result']>;
 

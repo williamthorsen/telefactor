@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import { z } from 'zod';
+
+import { defineJob } from '#src/contract/define-job.ts';
 
 import { createTelefactorClient } from '../create-telefactor-client.ts';
 import { TelefactorRequestError } from '../telefactor-request-error.ts';
@@ -7,6 +10,34 @@ const JOB = { id: 'a/b', harness: 'codex', status: 'running' };
 const SESSION = { id: 'a/b', harness: 'codex' };
 
 describe(createTelefactorClient, () => {
+  it("sends a declared job's fields and returns its parsed result", async () => {
+    const job = defineJob({ input: z.object({ name: z.string() }), result: z.object({ text: z.string() }) });
+    const bodies: unknown[] = [];
+    const client = createTelefactorClient({
+      job,
+      fetch: (_input, init = {}) => {
+        bodies.push(init.body);
+        return Promise.resolve(Response.json({ ...JOB, status: 'done', result: { text: 'hi' } }, { status: 201 }));
+      },
+    });
+
+    const started = await client.startJob({ prompt: 'hi', name: 'note' });
+
+    expectTypeOf(started.result).toEqualTypeOf<{ text: string } | undefined>();
+    expect(started.result).toStrictEqual({ text: 'hi' });
+    expect(bodies).toStrictEqual(['{"prompt":"hi","name":"note"}']);
+  });
+
+  it("rejects a job whose result does not match the job's schema", async () => {
+    const job = defineJob({ result: z.object({ text: z.string() }) });
+    const client = createTelefactorClient({
+      job,
+      fetch: () => Promise.resolve(Response.json({ ...JOB, status: 'done', result: { output: 'hi' } })),
+    });
+
+    await expect(client.getJob('a/b')).rejects.toThrow();
+  });
+
   it('starts a job with a JSON body under the base path', async () => {
     const { client, calls } = createFixture(201, JOB, '/custom');
 

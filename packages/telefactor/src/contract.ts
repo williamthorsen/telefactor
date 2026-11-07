@@ -15,6 +15,7 @@ export {
   defineJob,
   type JobDeclaration,
   type JobInput,
+  type JobRequest,
   type JobResult,
   type ParsedJobInput,
   promptJob,
