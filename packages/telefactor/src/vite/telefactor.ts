@@ -2,13 +2,13 @@ import path from 'node:path';
 
 import { getRequestListener, type Http2Bindings, type HttpBindings } from '@hono/node-server';
 import type { Plugin } from 'vite';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { createStateStore } from '#src/contract/create-state-store.ts';
 import type { ContractImplementation } from '#src/contract/implement-contract.ts';
 import { HARNESS_COMMAND_VARIABLE, readEnvironmentCommand, readHarnessSettings } from '#src/harness/read-settings.ts';
 import { runHarnessTest } from '#src/harness/run-harness-test.ts';
-import { buildHarnessConfigSchema } from '#src/harness/settings-schema.ts';
+import { buildHarnessConfigSchema, type BuiltInHarnesses } from '#src/harness/settings-schema.ts';
 import { createTelefactorApp } from '#src/http/create-app.ts';
 import {
   isAllowedUpgradeRequest,
@@ -33,6 +33,11 @@ export const DEFAULT_CONFIG_FILE = 'telefactor.config.json';
 export interface TelefactorPluginOptions {
   /** The path under which the routes are mounted; defaults to `/api/telefactor`. */
   basePath?: string;
+  /**
+   * The harnesses that apply when neither the environment variable nor the config file defines any; defaults to the
+   * package's recipes. An app passes the same value to `readHarnessSettings`, and may write it out as a config file.
+   */
+  builtIn?: BuiltInHarnesses;
   /**
    * The schema of the app's own keys in the config file, which the file may then hold beside the package's. An app
    * reads their values with `readHarnessSettings` and the same schema. Its keys may not name the package's keys.
@@ -60,6 +65,7 @@ export interface TelefactorPluginOptions {
  */
 export function telefactor({
   basePath = DEFAULT_BASE_PATH,
+  builtIn,
   commandVariable = HARNESS_COMMAND_VARIABLE,
   config,
   configPath = DEFAULT_CONFIG_FILE,
@@ -67,8 +73,8 @@ export function telefactor({
   job,
   workingDirectory = '.',
 }: TelefactorPluginOptions = {}): Plugin {
-  // Refuse an app config schema that names a package key while the Vite config loads.
-  if (config !== undefined) buildHarnessConfigSchema(config);
+  // Refuse an app config schema that names a package key, and invalid built-in harnesses, while the Vite config loads.
+  if (config !== undefined || builtIn !== undefined) buildHarnessConfigSchema(config ?? z.object({}), builtIn);
 
   return {
     name: 'telefactor',
@@ -106,7 +112,12 @@ export function telefactor({
           },
         },
         readSettings: () => {
-          const options = { env: process.env, configPath: resolvedConfigPath, commandVariable };
+          const options = {
+            env: process.env,
+            configPath: resolvedConfigPath,
+            commandVariable,
+            ...(builtIn !== undefined && { builtIn }),
+          };
           return config === undefined ? readHarnessSettings(options) : readHarnessSettings({ ...options, config });
         },
         runTest: (argv, signal) => runHarnessTest({ argv, workingDirectory: resolvedWorkingDirectory, signal }),
