@@ -22,6 +22,6 @@ export {
   type TerminalSessionInfo,
   terminalSessionSchema,
 } from './http/route-schemas.ts';
-export { type Job, jobSchema, type JobStatus } from './jobs/job-schemas.ts';
+export { buildJobSchema, type Job, jobSchema, type JobStatus } from './jobs/job-schemas.ts';
 export type { Problem } from './schemas/problem.ts';
 export { TERMINAL_CLOSE_CODES } from './terminal/terminal-close-codes.ts';

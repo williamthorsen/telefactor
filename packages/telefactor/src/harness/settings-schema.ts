@@ -50,7 +50,9 @@ const PACKAGE_CONFIG_SHAPE = {
  * that neither defines is reported, and the app's values are parsed by its own schema into `app`. Throws when the app's
  * schema names a key that the package defines.
  */
-export function buildHarnessConfigSchema<S extends z.ZodObject>(appConfigSchema: S) {
+export function buildHarnessConfigSchema<S extends z.ZodObject>(
+  appConfigSchema: S,
+): z.ZodType<HarnessSettings<z.output<S>>> {
   const appKeys = Object.keys(appConfigSchema.shape);
   const collisions = appKeys.filter((key) => Object.hasOwn(PACKAGE_CONFIG_SHAPE, key));
   if (collisions.length > 0) {

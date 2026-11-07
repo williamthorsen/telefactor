@@ -55,8 +55,16 @@ export {
   type Jobs,
   type JobStore,
 } from './jobs/create-jobs.ts';
+export {
+  implementJob,
+  type JobImplementation,
+  type JobOutcome,
+  type JobRunContext,
+  type PreparedRun,
+} from './jobs/implement-job.ts';
 export { createInMemoryJobStore } from './jobs/in-memory-job-store.ts';
-export { type Job, jobSchema, type JobStatus } from './jobs/job-schemas.ts';
+export { buildJobSchema, type Job, jobSchema, type JobStatus } from './jobs/job-schemas.ts';
+export { promptJobImplementation } from './jobs/prompt-job-implementation.ts';
 export {
   createTerminalSessions,
   type PtyProcess,

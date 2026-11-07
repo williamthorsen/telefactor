@@ -11,3 +11,11 @@ export {
   GET_STATE_TOOL_NAME,
   type ParsedActionInput,
 } from './contract/define-contract.ts';
+export {
+  defineJob,
+  type JobDeclaration,
+  type JobInput,
+  type JobResult,
+  type ParsedJobInput,
+  promptJob,
+} from './contract/define-job.ts';
