@@ -6,5 +6,5 @@ import { defineVitestConfig } from '@williamthorsen/nmr/vitest';
 // rejects at compile time — Vitest ignores them at the root once `projects` exists.
 export default defineVitestConfig({
   root: { plugins: [createReactPlugin()] },
-  project: { environment: 'jsdom', setupFiles: ['./vitest.setup.ts'] },
+  project: { environment: 'happy-dom', setupFiles: ['./vitest.setup.ts'] },
 });
