@@ -22,7 +22,11 @@ describe('createTelefactorApp with a store', () => {
     const response = await postAction(app, 'add', { amount: 2 });
 
     expect(response.status).toBe(200);
-    expect(snapshotSchema.parse(await response.json())).toStrictEqual({ version: 1, state: { count: 2 } });
+    expect(snapshotSchema.parse(await response.json())).toStrictEqual({
+      version: 1,
+      state: { count: 2 },
+      change: { action: 'add', origin: 'page' },
+    });
     expect(store.read().version).toBe(1);
   });
 
@@ -74,7 +78,9 @@ describe('createTelefactorApp with a store', () => {
     controller.abort();
 
     expect(first).toBe('event: state\ndata: {"version":0,"state":{"count":0}}\n\n');
-    expect(second).toBe('event: state\ndata: {"version":1,"state":{"count":3}}\n\n');
+    expect(second).toBe(
+      'event: state\ndata: {"version":1,"state":{"count":3},"change":{"action":"add","origin":"page"}}\n\n',
+    );
   });
 
   it('refuses a state request that the guard rejects', async () => {

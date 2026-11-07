@@ -61,10 +61,14 @@ describe(createContractClient, () => {
 
     const unsubscribe = client.subscribe(listener);
     stream.push('event: state\ndata: {"version":0,"state":{"count":0}}\n\nevent: st');
-    stream.push('ate\ndata: {"version":1,"state":{"count":1}}\n\n');
+    stream.push('ate\ndata: {"version":1,"state":{"count":1},"change":{"action":"add","origin":"agent"}}\n\n');
 
     await vi.waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
-    expect(listener).toHaveBeenLastCalledWith({ version: 1, state: { count: 1 } });
+    expect(listener).toHaveBeenLastCalledWith({
+      version: 1,
+      state: { count: 1 },
+      change: { action: 'add', origin: 'agent' },
+    });
     unsubscribe();
   });
 

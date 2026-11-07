@@ -56,6 +56,9 @@ export const harnessListSchema = z.union([
 
 export type HarnessList = z.infer<typeof harnessListSchema>;
 
+/** A harness as a usable list describes it. */
+export type HarnessEntry = Extract<HarnessList, { harnesses: unknown }>['harnesses'][number];
+
 /**
  * The body of a `200` from `POST /harnesses/:name/test`. `exit` describes how the test ended, such as `exit code 1` or
  * `timed out after 60 s`, and `output` holds the last lines of its stdout and stderr.
@@ -69,9 +72,19 @@ export const harnessTestResultSchema = z.object({
 
 export type HarnessTestResult = z.infer<typeof harnessTestResultSchema>;
 
-/** The body of `GET /state`, of each `/state/events` event, and of a `200` from `POST /actions/:name`. */
+/** The action that produced a commit, and whether an MCP tool call (`agent`) or a route call (`page`) ran it. */
+export const stateChangeSchema = z.object({ action: z.string(), origin: z.enum(['agent', 'page']) });
+
+/**
+ * The body of `GET /state`, of each `/state/events` event, and of a `200` from `POST /actions/:name`. `change` describes
+ * the latest commit and is absent at version 0.
+ */
 export function stateSnapshotSchema<S extends z.ZodType>(
   stateSchema: S,
-): z.ZodObject<{ version: z.ZodNumber; state: S }> {
-  return z.object({ version: z.number().int().nonnegative(), state: stateSchema });
+): z.ZodObject<{ version: z.ZodNumber; state: S; change: z.ZodOptional<typeof stateChangeSchema> }> {
+  return z.object({
+    version: z.number().int().nonnegative(),
+    state: stateSchema,
+    change: stateChangeSchema.optional(),
+  });
 }
