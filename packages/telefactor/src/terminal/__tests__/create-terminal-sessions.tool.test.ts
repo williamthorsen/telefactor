@@ -27,9 +27,11 @@ describe('createTerminalSessions on a real pty', () => {
     const attachment = sessions.attach(id, first);
 
     await vi.waitFor(() => expect(readAll(first)).toContain('cols=80'));
+    // Await each step before the next: The pty does not order an input echo against a resize report.
     attachment?.write(new TextEncoder().encode('hello'));
+    await vi.waitFor(() => expect(readAll(first)).toContain('got:hello'));
     attachment?.resize({ cols: 100, rows: 30 });
-    await vi.waitFor(() => expect(readAll(first)).toMatch(/got:hello[\s\S]*cols=100/));
+    await vi.waitFor(() => expect(readAll(first)).toContain('cols=100'));
     attachment?.detach();
 
     const second = createFakeSocket();
