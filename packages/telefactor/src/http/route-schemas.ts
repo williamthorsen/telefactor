@@ -61,7 +61,7 @@ export type HarnessEntry = Extract<HarnessList, { harnesses: unknown }>['harness
 
 /**
  * The body of a `200` from `POST /harnesses/:name/test`. `exit` describes how the test ended, such as `exit code 1` or
- * `timed out after 60 s`, and `output` holds the last lines of its stdout and stderr.
+ * `timed out after 60 s`, and `output` quotes the end of its stdout and stderr, bounded in lines and characters.
  */
 export const harnessTestResultSchema = z.object({
   ok: z.boolean(),
