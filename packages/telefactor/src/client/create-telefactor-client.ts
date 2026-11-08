@@ -18,15 +18,24 @@ import { requestJson } from './request-json.ts';
 export interface TelefactorClient<J extends JobDeclaration = typeof promptJob> {
   /** The path under which the routes are mounted. */
   readonly basePath: string;
-  cancelJob(id: string): Promise<Job<JobResult<J>>>;
-  closeTerminalSession(id: string): Promise<TerminalSessionInfo>;
-  createTerminalSession(request: StartTerminalSessionRequest): Promise<TerminalSessionInfo>;
-  getJob(id: string): Promise<Job<JobResult<J>>>;
-  listHarnesses(): Promise<HarnessList>;
-  startJob(request: JobRequest<J>): Promise<Job<JobResult<J>>>;
+  cancelJob(id: string, options?: RequestOptions): Promise<Job<JobResult<J>>>;
+  closeTerminalSession(id: string, options?: RequestOptions): Promise<TerminalSessionInfo>;
+  createTerminalSession(request: StartTerminalSessionRequest, options?: RequestOptions): Promise<TerminalSessionInfo>;
+  getJob(id: string, options?: RequestOptions): Promise<Job<JobResult<J>>>;
+  listHarnesses(options?: RequestOptions): Promise<HarnessList>;
+  startJob(request: JobRequest<J>, options?: RequestOptions): Promise<Job<JobResult<J>>>;
   /** Returns the WebSocket URL of a session's socket, on the page's host, with `wss:` on an `https:` page. */
   terminalSocketUrl(id: string): string;
-  testHarness(name: string): Promise<HarnessTestResult>;
+  /** Runs the harness's test command; aborting the request stops the test on the server. */
+  testHarness(name: string, options?: RequestOptions): Promise<HarnessTestResult>;
+}
+
+/**
+ * Per-request options. Aborting `signal` aborts the request, which then rejects with the `AbortError` that `fetch`
+ * raises rather than with a `TelefactorRequestError`.
+ */
+export interface RequestOptions {
+  signal?: AbortSignal;
 }
 
 /** The parts of the page's location from which a socket URL is built. */
@@ -58,25 +67,30 @@ export function createTelefactorClient({
 }: TelefactorClientOptions & { job?: JobDeclaration } = {}): TelefactorClient<JobDeclaration> {
   const jobSchema = buildJobSchema(job.result);
 
-  function request<T>(schema: z.ZodType<T>, route: string, init: RequestInit = {}): Promise<T> {
-    return requestJson(fetchFunction, schema, `${basePath}${route}`, init);
+  function request<T>(
+    schema: z.ZodType<T>,
+    route: string,
+    { signal }: RequestOptions = {},
+    init: RequestInit = {},
+  ): Promise<T> {
+    return requestJson(fetchFunction, schema, `${basePath}${route}`, signal === undefined ? init : { ...init, signal });
   }
 
   return {
     basePath,
-    cancelJob: (id) => request(jobSchema, `/jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-    closeTerminalSession: (id) =>
-      request(terminalSessionSchema, `/terminal/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-    createTerminalSession: (body) =>
-      request(terminalSessionSchema, '/terminal/sessions', {
+    cancelJob: (id, options) => request(jobSchema, `/jobs/${encodeURIComponent(id)}`, options, { method: 'DELETE' }),
+    closeTerminalSession: (id, options) =>
+      request(terminalSessionSchema, `/terminal/sessions/${encodeURIComponent(id)}`, options, { method: 'DELETE' }),
+    createTerminalSession: (body, options) =>
+      request(terminalSessionSchema, '/terminal/sessions', options, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
       }),
-    getJob: (id) => request(jobSchema, `/jobs/${encodeURIComponent(id)}`),
-    listHarnesses: () => request(harnessListSchema, '/harnesses'),
-    startJob: (body) =>
-      request(jobSchema, '/jobs', {
+    getJob: (id, options) => request(jobSchema, `/jobs/${encodeURIComponent(id)}`, options),
+    listHarnesses: (options) => request(harnessListSchema, '/harnesses', options),
+    startJob: (body, options) =>
+      request(jobSchema, '/jobs', options, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),
@@ -86,8 +100,8 @@ export function createTelefactorClient({
       const scheme = protocol === 'https:' ? 'wss:' : 'ws:';
       return `${scheme}//${host}${basePath}/terminal/sessions/${encodeURIComponent(id)}/socket`;
     },
-    testHarness: (name) =>
-      request(harnessTestResultSchema, `/harnesses/${encodeURIComponent(name)}/test`, { method: 'POST' }),
+    testHarness: (name, options) =>
+      request(harnessTestResultSchema, `/harnesses/${encodeURIComponent(name)}/test`, options, { method: 'POST' }),
   };
 }
 
