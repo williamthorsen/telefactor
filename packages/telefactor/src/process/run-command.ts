@@ -8,6 +8,9 @@ const TAIL_LINES = 20;
 /** The amount of stderr kept, enough for the lines that a report quotes. */
 const STDERR_KEPT_CHARACTERS = 65_536;
 
+/** The longest quote of a command's output, which bounds a tail made of one long line. */
+const QUOTE_MAX_CHARACTERS = 4096;
+
 /** How a command ended. `exceeded` reports that stdout passed the cap, so that the command was stopped. */
 export interface CommandRun {
   code: number | null;
@@ -99,6 +102,12 @@ export function runCommand({
 /** Describes how a command ended: `code 1` or `signal SIGTERM`. */
 export function describeExit({ code, signal }: Pick<CommandRun, 'code' | 'signal'>): string {
   return code === null ? `signal ${signal ?? 'unknown'}` : `code ${code}`;
+}
+
+/** Quotes the end of a command's stdout followed by its stderr tail, bounded in lines and in characters. */
+export function quoteOutput({ stdout, stderrTail }: Pick<CommandRun, 'stdout' | 'stderrTail'>): string {
+  const tail = takeTail([stdout.trim(), stderrTail].filter((part) => part !== '').join('\n'));
+  return tail.slice(-QUOTE_MAX_CHARACTERS);
 }
 
 /** Returns the last lines of the output, trimmed. */

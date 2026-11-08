@@ -1,4 +1,4 @@
-import { type CommandRun, describeExit, runCommand } from '#src/process/run-command.ts';
+import { type CommandRun, describeExit, quoteOutput, runCommand } from '#src/process/run-command.ts';
 import { formatIssuePath } from '#src/schemas/problem.ts';
 
 import { expandArgv, type JobRun } from './create-jobs.ts';
@@ -53,9 +53,13 @@ export function createHarnessRun({
   };
 }
 
-/** Describes why a finished run failed, with the tail of its stderr; returns `undefined` for a run that succeeded. */
+/**
+ * Describes why a finished run failed, quoting the end of its stdout and stderr; returns `undefined` for a run that
+ * succeeded.
+ */
 export function describeRunFailure(harness: string, run: CommandRun, maxStdoutBytes: number): string | undefined {
-  const tail = run.stderrTail === '' ? '' : `\n${run.stderrTail}`;
+  const quote = quoteOutput(run);
+  const tail = quote === '' ? '' : `\n${quote}`;
   if (run.exceeded) {
     return `The harness ${harness} wrote more than ${formatBytes(maxStdoutBytes)} of output and was stopped.${tail}`;
   }

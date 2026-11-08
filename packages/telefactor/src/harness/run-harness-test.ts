@@ -1,7 +1,7 @@
 import type { HarnessTestResult } from '#src/http/route-schemas.ts';
 import { MAX_OUTPUT_BYTES } from '#src/jobs/create-harness-run.ts';
 import { describeError } from '#src/portable/describe-error.ts';
-import { describeExit, runCommand, takeTail } from '#src/process/run-command.ts';
+import { describeExit, quoteOutput, runCommand } from '#src/process/run-command.ts';
 
 /** The time after which a harness test is stopped and reported as failed. */
 export const HARNESS_TEST_TIMEOUT_MS = 60_000;
@@ -32,7 +32,7 @@ export async function runHarnessTest({
       signal: AbortSignal.any([signal, timeout]),
       maxStdoutBytes: MAX_OUTPUT_BYTES,
     });
-    const output = takeTail([run.stdout.trim(), run.stderrTail].filter((part) => part !== '').join('\n'));
+    const output = quoteOutput(run);
     outcome = run.exceeded
       ? { ok: false, exit: 'output exceeded 1 MiB', output }
       : { ok: run.code === 0, exit: `exit ${describeExit(run)}`, output };
