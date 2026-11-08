@@ -59,7 +59,7 @@
     "@williamthorsen/terminal-react": "catalog:",
     "@xterm/addon-serialize": "0.14.0",
     "@xterm/headless": "6.0.0",
-    "hono": "4.13.16",
+    "hono": "4.13.17",
     "node-pty": "1.2.0-beta.18",
     "ws": "8.22.1",
     "zod": "catalog:"
