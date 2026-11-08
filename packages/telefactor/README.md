@@ -39,6 +39,8 @@ const job = await client.startJob({ prompt: 'Summarize README.md' });
 const finished = await client.getJob(job.id); // poll until `status` is no longer `running`
 ```
 
+Each request method takes an optional `{ signal }` as its last argument. Aborting the signal aborts the request, which rejects with the `AbortError` from `fetch` rather than with a `TelefactorRequestError`. Aborting `testHarness` also stops the test on the dev server.
+
 The [playground app](https://github.com/williamthorsen/telefactor/tree/main/apps/playground) is a complete example: [`vite.config.ts`](https://github.com/williamthorsen/telefactor/blob/main/apps/playground/vite.config.ts) mounts the plugin, and its page lists the harnesses, tests one, and runs, polls, and cancels a job.
 
 A finished job is `done` with its harness's stdout as `result.output` (or the result of the app's own [job](#jobs)), `failed` with an `error` that names how the run ended and quotes the end of its stderr, or `cancelled`. The library spawns the user's installed CLI and never reads or forwards its credentials.
@@ -138,7 +140,7 @@ The session runs the harness's `interactive` command in the working directory, w
 
 ## Harness picker
 
-The `./react` entry also exports `HarnessPicker`, which lists the harnesses, preselects the default one, and tests the selected one. It reports the selected harness's entry, or `undefined` while none can run, as when the config file has problems:
+The `./react` entry also exports `HarnessPicker`, which lists the harnesses, preselects the default one, and tests the selected one. It stops a running test when it unmounts. It reports the selected harness's entry, or `undefined` while none can run, as when the config file has problems:
 
 ```tsx
 const [harness, setHarness] = useState<HarnessEntry>();

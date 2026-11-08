@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { defineJob } from '#src/contract/define-job.ts';
 
-import { createTelefactorClient } from '../create-telefactor-client.ts';
+import { createTelefactorClient, type TelefactorClient } from '../create-telefactor-client.ts';
 import { TelefactorRequestError } from '../telefactor-request-error.ts';
 
 const JOB = { id: 'a/b', harness: 'codex', status: 'running' };
@@ -128,6 +128,69 @@ describe(createTelefactorClient, () => {
 
     await expect(client.getJob('x')).rejects.toThrow();
   });
+  it.each([
+    ['cancelJob', (client: TelefactorClient, signal: AbortSignal) => client.cancelJob('a', { signal })],
+    [
+      'closeTerminalSession',
+      (client: TelefactorClient, signal: AbortSignal) => client.closeTerminalSession('a', { signal }),
+    ],
+    [
+      'createTerminalSession',
+      (client: TelefactorClient, signal: AbortSignal) => client.createTerminalSession({ harness: 'codex' }, { signal }),
+    ],
+    ['getJob', (client: TelefactorClient, signal: AbortSignal) => client.getJob('a', { signal })],
+    ['listHarnesses', (client: TelefactorClient, signal: AbortSignal) => client.listHarnesses({ signal })],
+    ['startJob', (client: TelefactorClient, signal: AbortSignal) => client.startJob({ prompt: 'hi' }, { signal })],
+    ['testHarness', (client: TelefactorClient, signal: AbortSignal) => client.testHarness('codex', { signal })],
+  ])('%s passes its signal to fetch', async (_name, call) => {
+    const signals: (AbortSignal | null | undefined)[] = [];
+    const client = createTelefactorClient({
+      fetch: (_input, init = {}) => {
+        signals.push(init.signal);
+        return Promise.resolve(Response.json({}));
+      },
+    });
+    const { signal } = new AbortController();
+
+    // Some answers fail their method's schema; only the request matters here.
+    await Promise.allSettled([call(client, signal)]);
+
+    expect(signals).toStrictEqual([signal]);
+  });
+
+  it('rejects with the AbortError of a request aborted before its response', async () => {
+    const controller = new AbortController();
+    const client = createTelefactorClient({ fetch: (_input, init = {}) => rejectOnAbort(init.signal) });
+
+    const pending = captureError(() => client.testHarness('codex', { signal: controller.signal }));
+    controller.abort();
+    const error = await pending;
+
+    expect(error).not.toBeInstanceOf(TelefactorRequestError);
+    expect(error).toMatchObject({ name: 'AbortError' });
+  });
+
+  it('rejects with the AbortError of a request aborted while its body is read', async () => {
+    const controller = new AbortController();
+    const client = createTelefactorClient({
+      fetch: (_input, init = {}) => {
+        const body = new ReadableStream({
+          start(stream) {
+            stream.enqueue(new TextEncoder().encode('{"ok":'));
+            init.signal?.addEventListener('abort', () => stream.error(init.signal?.reason));
+            controller.abort();
+          },
+        });
+        return Promise.resolve(new Response(body, { headers: { 'content-type': 'application/json' } }));
+      },
+    });
+
+    const error = await captureError(() => client.testHarness('codex', { signal: controller.signal }));
+
+    expect(error).not.toBeInstanceOf(TelefactorRequestError);
+    expect(error).toMatchObject({ name: 'AbortError' });
+  });
+
   it('starts a terminal session with a JSON body', async () => {
     const { client, calls } = createFixture(201, SESSION);
 
@@ -191,6 +254,17 @@ function describeInput(input: string | URL | Request): string {
   return input instanceof URL ? input.href : input.url;
 }
 
+/** Returns a response promise that rejects with the signal's reason once it aborts. */
+function rejectOnAbort(signal: AbortSignal | null | undefined): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    signal?.addEventListener('abort', () => {
+      const { reason }: { reason: unknown } = signal;
+      reject(reason instanceof Error ? reason : new Error(String(reason)));
+    });
+  });
+}
+
+/** Returns the error with which the call rejects. */
 async function captureError(call: () => Promise<unknown>): Promise<unknown> {
   try {
     await call();

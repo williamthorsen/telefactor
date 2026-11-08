@@ -2,7 +2,10 @@ import type { z } from 'zod';
 
 import { buildRequestError, TelefactorRequestError } from './telefactor-request-error.ts';
 
-/** Sends a request and parses its JSON body with the schema; throws `TelefactorRequestError` for a refused response. */
+/**
+ * Sends a request and parses its JSON body with the schema; throws `TelefactorRequestError` for a refused response.
+ * An aborted request rejects with the error that `fetch` or the body read raised.
+ */
 export async function requestJson<T>(
   fetchFunction: typeof fetch,
   schema: z.ZodType<T>,
@@ -13,7 +16,8 @@ export async function requestJson<T>(
   let body: unknown;
   try {
     body = await response.json();
-  } catch {
+  } catch (error: unknown) {
+    if (init.signal?.aborted === true) throw error;
     // A `basePath` that the plugin does not serve reaches Vite's HTML fallback.
     throw new TelefactorRequestError(response.status, `The response from ${url} is not JSON.`);
   }

@@ -11,6 +11,7 @@ export {
 export {
   createTelefactorClient,
   type PageLocation,
+  type RequestOptions,
   type TelefactorClient,
   type TelefactorClientOptions,
 } from './client/create-telefactor-client.ts';
