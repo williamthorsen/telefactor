@@ -1,5 +1,76 @@
 [
   {
+    "version": "0.3.0",
+    "date": "2026-11-08",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Adds a `builtIn` option, shaped like the config file's `{ harnesses, default }` keys, to the `telefactor` plugin and to `readHarnessSettings`, so that an app's own harnesses replace the package's recipes when neither the environment variable nor the config file defines any. (#23)",
+            "hash": "f1c93f945b27af7f634de580b91f14eeef7addeb",
+            "entry": 1
+          },
+          {
+            "description": "Includes `CHANGELOG.md` and `.meta/changelog.json`, the machine-readable changelog, in the published `@williamthorsen/telefactor` package. (#27)",
+            "hash": "f463a19aee63ec6d8d6dc218fecaf9e126c3fe5e",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "🧪 Tests",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Fixes the issue that `create-terminal-sessions.tool.test.ts` failed intermittently: It asserted that the input echo came before the resize report, and the pty does not order the two, so the test now waits for `got:hello` before it resizes and then waits for `cols=100` separately. (#30)",
+            "hash": "2174b7b3e39c3773fe0897dca817d1afc07ef0cf",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "⚙️ Tooling",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Removes the descriptions from the `scope:playground` and `scope:telefactor` labels in `.config/release-kit.config.ts` and the generated `.github/labels.yaml` so that GitHub groups the scope labels compactly. (#27)",
+            "hash": "f463a19aee63ec6d8d6dc218fecaf9e126c3fe5e",
+            "entry": 2
+          }
+        ]
+      },
+      {
+        "title": "👷 CI",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Adds the `publish.yaml` workflow, which publishes the package to npm with provenance for each release tag. (#23)",
+            "hash": "f1c93f945b27af7f634de580b91f14eeef7addeb",
+            "entry": 2
+          }
+        ]
+      },
+      {
+        "title": "📦 Dependencies",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Upgrades `@williamthorsen/eslint-config-typescript` from 20.2.0 to 20.3.0, which adds the `sky-pilot/no-real-time-sleep` rule for test files, and replaces the `setTimeout` delay in the `createStateStore` call-order test with a promise that the test releases. (#25)",
+            "hash": "1b585365f25fd11580c668b9658925c00b4c256c",
+            "entry": 1
+          },
+          {
+            "description": "Replaces `jsdom` 30.1.3 with `happy-dom` 21.0.4 as the DOM test environment in `packages/telefactor` and `apps/playground`, and removes jsdom's dependency tree from `pnpm-lock.yaml`. (#28)",
+            "hash": "96a281724306cf92d3d2c0a188c36fda3e016b96",
+            "entry": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.2.0",
     "date": "2026-11-07",
     "sections": [

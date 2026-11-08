@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.0 — 2026-11-08
+
+### 🎉 Features
+
+- Adds a `builtIn` option, shaped like the config file's `{ harnesses, default }` keys, to the `telefactor` plugin and to `readHarnessSettings`, so that an app's own harnesses replace the package's recipes when neither the environment variable nor the config file defines any. (#23)
+- Includes `CHANGELOG.md` and `.meta/changelog.json`, the machine-readable changelog, in the published `@williamthorsen/telefactor` package. (#27)
+
+### 🧪 Tests
+
+- Fixes the issue that `create-terminal-sessions.tool.test.ts` failed intermittently: It asserted that the input echo came before the resize report, and the pty does not order the two, so the test now waits for `got:hello` before it resizes and then waits for `cols=100` separately. (#30)
+
+### 📦 Dependencies
+
+- Upgrade eslint-config-typescript to 20.3.0 (#25)
+
+  Upgrades `@williamthorsen/eslint-config-typescript` from 20.2.0 to 20.3.0 and rewrites the state-store call-order test to wait on a promise that the test releases rather than on a real timer, which the release's new `sky-pilot/no-real-time-sleep` rule reports in test files.
+
+- Replaces `jsdom` 30.1.3 with `happy-dom` 21.0.4 as the DOM test environment in `packages/telefactor` and `apps/playground`, and removes jsdom's dependency tree from `pnpm-lock.yaml`. (#28)
+
 ## 0.2.0 — 2026-11-07
 
 ### 🎉 Features

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.1.2 — 2026-11-08
+
+### 📦 Dependencies
+
+- Replaces `jsdom` 30.1.3 with `happy-dom` 21.0.4 as the DOM test environment in `packages/telefactor` and `apps/playground`, and removes jsdom's dependency tree from `pnpm-lock.yaml`. (#28)
+
 ## 0.1.1 — 2026-11-07
 
 ### 📦 Dependencies

@@ -1,5 +1,54 @@
 [
   {
+    "version": "0.3.0",
+    "date": "2026-11-08",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Adds a `builtIn` option, shaped like the config file's `{ harnesses, default }` keys, to the `telefactor` plugin and to `readHarnessSettings`, so that an app's own harnesses replace the package's recipes when neither the environment variable nor the config file defines any. (#23)",
+            "hash": "f1c93f945b27af7f634de580b91f14eeef7addeb",
+            "entry": 1
+          },
+          {
+            "description": "Includes `CHANGELOG.md` and `.meta/changelog.json`, the machine-readable changelog, in the published `@williamthorsen/telefactor` package. (#27)",
+            "hash": "f463a19aee63ec6d8d6dc218fecaf9e126c3fe5e",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "🧪 Tests",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Fixes the issue that `create-terminal-sessions.tool.test.ts` failed intermittently: It asserted that the input echo came before the resize report, and the pty does not order the two, so the test now waits for `got:hello` before it resizes and then waits for `cols=100` separately. (#30)",
+            "hash": "2174b7b3e39c3773fe0897dca817d1afc07ef0cf",
+            "entry": 1
+          }
+        ]
+      },
+      {
+        "title": "📦 Dependencies",
+        "audience": "dev",
+        "items": [
+          {
+            "description": "Upgrade eslint-config-typescript to 20.3.0 (#25)",
+            "body": "Upgrades `@williamthorsen/eslint-config-typescript` from 20.2.0 to 20.3.0 and rewrites the state-store call-order test to wait on a promise that the test releases rather than on a real timer, which the release's new `sky-pilot/no-real-time-sleep` rule reports in test files.",
+            "hash": "1b585365f25fd11580c668b9658925c00b4c256c"
+          },
+          {
+            "description": "Replaces `jsdom` 30.1.3 with `happy-dom` 21.0.4 as the DOM test environment in `packages/telefactor` and `apps/playground`, and removes jsdom's dependency tree from `pnpm-lock.yaml`. (#28)",
+            "hash": "96a281724306cf92d3d2c0a188c36fda3e016b96",
+            "entry": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.2.0",
     "date": "2026-11-07",
     "sections": [
