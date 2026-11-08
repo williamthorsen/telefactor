@@ -89,7 +89,7 @@ describe(HarnessPicker, () => {
 
     expect(await screen.findByText('Test failed: exit code 1, in 12 ms.')).toBeDefined();
     expect(screen.getByText('not signed in')).toBeDefined();
-    expect(testHarness).toHaveBeenCalledWith('claude-code');
+    expect(testHarness).toHaveBeenCalledWith('claude-code', { signal: expect.any(AbortSignal) });
   });
 
   it('disables the picker and keeps the test button focusable while a test runs', async () => {
@@ -107,6 +107,23 @@ describe(HarnessPicker, () => {
     pendingTest.resolve({ ok: true, durationMs: 5, exit: 'exit code 0', output: '' });
     await screen.findByText('Test passed: exit code 0, in 5 ms.');
     expect(screen.getByLabelText('Harness')).toHaveProperty('disabled', false);
+  });
+
+  it('aborts a running test when it unmounts', async () => {
+    const signals: (AbortSignal | undefined)[] = [];
+    const client = createFakeTelefactorClient({
+      testHarness: (_name, options) => {
+        signals.push(options?.signal);
+        return new Promise(() => {});
+      },
+    });
+    renderPicker(client);
+    fireEvent.click(await screen.findByRole('button', { name: 'Test' }));
+
+    cleanup();
+
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(true);
   });
 
   it('clears the test result when the selection changes', async () => {

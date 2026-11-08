@@ -17,12 +17,16 @@ export function HarnessPicker({ client, harness, onHarnessChange, className }: H
   const [testError, setTestError] = useState<unknown>();
   const [isTesting, setIsTesting] = useState(false);
   const onHarnessChangeRef = useRef(onHarnessChange);
+  const testControllerRef = useRef<AbortController>(undefined);
   const selectId = useId();
 
   // Read the latest callback at each commit, so that a new identity does not reload the list.
   useEffect(() => {
     onHarnessChangeRef.current = onHarnessChange;
   });
+
+  // Stop a running test when the picker unmounts, as when its dialog closes.
+  useEffect(() => () => testControllerRef.current?.abort(), []);
 
   useEffect(() => {
     let isCurrent = true;
@@ -66,15 +70,18 @@ export function HarnessPicker({ client, harness, onHarnessChange, className }: H
 
   async function testHarness(name: string): Promise<void> {
     if (isTesting) return;
+    const controller = new AbortController();
+    testControllerRef.current = controller;
     setIsTesting(true);
     setTestResult(undefined);
     setTestError(undefined);
     try {
-      setTestResult(await client.testHarness(name));
+      const result = await client.testHarness(name, { signal: controller.signal });
+      if (!controller.signal.aborted) setTestResult(result);
     } catch (error: unknown) {
-      setTestError(error);
+      if (!controller.signal.aborted) setTestError(error);
     } finally {
-      setIsTesting(false);
+      if (!controller.signal.aborted) setIsTesting(false);
     }
   }
 
