@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.4.1",
+    "date": "2026-11-08",
+    "sections": [
+      {
+        "title": "🐛 Bug fixes",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Fixes the issue that a failed job's `error` quoted only the end of the harness's stderr, which left a harness that reports its failure on stdout, such as Claude Code when it is not logged in, failing with only its exit code. (#34)",
+            "hash": "c60387e6ed3ab3239bfd66e18c2c9d3ae0f52231",
+            "entry": 1
+          },
+          {
+            "description": "Fixes the issue that the `output` of a `POST /harnesses/:name/test` result was limited only in lines, which let a harness that prints very long lines return an oversized result, by also cutting `output` to 4096 characters. (#34)",
+            "hash": "c60387e6ed3ab3239bfd66e18c2c9d3ae0f52231",
+            "entry": 2
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.4.0",
     "date": "2026-11-08",
     "sections": [

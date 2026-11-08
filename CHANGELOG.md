@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.1 — 2026-11-08
+
+### 🐛 Bug fixes
+
+- Fixes the issue that a failed job's `error` quoted only the end of the harness's stderr, which left a harness that reports its failure on stdout, such as Claude Code when it is not logged in, failing with only its exit code. (#34)
+- Fixes the issue that the `output` of a `POST /harnesses/:name/test` result was limited only in lines, which let a harness that prints very long lines return an oversized result, by also cutting `output` to 4096 characters. (#34)
+
 ## 0.4.0 — 2026-11-08
 
 ### 🎉 Features
