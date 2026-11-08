@@ -1,6 +1,6 @@
 {
   "name": "@williamthorsen/telefactor",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Embed the user's own agent harness in a web app",
   "keywords": [
     "agent",

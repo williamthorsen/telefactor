@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.0 — 2026-11-08
+
+### 🎉 Features
+
+- Adds an optional `{ signal }` argument, typed as `RequestOptions` and exported from `./client`, to every `TelefactorClient` request method, so that aborting the signal aborts the request with the `AbortError` from `fetch` rather than a `TelefactorRequestError`, and aborting `testHarness` also stops the test on the dev server. (#32)
+
+### 🐛 Bug fixes
+
+- Fixes the issue that `HarnessPicker` left a harness test running on the dev server after the picker unmounted, as when the dialog that contains it closed. (#32)
+
 ## 0.3.0 — 2026-11-08
 
 ### 🎉 Features
