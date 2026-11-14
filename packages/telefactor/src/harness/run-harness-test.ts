@@ -1,6 +1,7 @@
+import { describeError } from '@williamthorsen/toolbelt.errors';
+
 import type { HarnessTestResult } from '#src/http/route-schemas.ts';
 import { MAX_OUTPUT_BYTES } from '#src/jobs/create-harness-run.ts';
-import { describeError } from '#src/portable/describe-error.ts';
 import { describeExit, quoteOutput, runCommand } from '#src/process/run-command.ts';
 
 /** The time after which a harness test is stopped and reported as failed. */

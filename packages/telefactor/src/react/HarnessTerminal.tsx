@@ -1,8 +1,8 @@
 import { type ITheme, Terminal } from '@williamthorsen/terminal-react';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 import { type ReactElement, useState } from 'react';
 
 import type { TelefactorClient } from '#src/client/create-telefactor-client.ts';
-import { describeError } from '#src/portable/describe-error.ts';
 import { TERMINAL_CLOSE_CODES } from '#src/terminal/terminal-close-codes.ts';
 
 export interface HarnessTerminalProps {

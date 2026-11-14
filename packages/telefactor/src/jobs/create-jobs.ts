@@ -1,4 +1,4 @@
-import { describeError } from '#src/portable/describe-error.ts';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 
 import type { Job } from './job-schemas.ts';
 

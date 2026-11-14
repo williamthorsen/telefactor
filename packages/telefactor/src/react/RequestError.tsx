@@ -1,3 +1,4 @@
+import { describeError } from '@williamthorsen/toolbelt.errors';
 import type { ReactElement } from 'react';
 
 import { TelefactorRequestError } from '#src/client/telefactor-request-error.ts';
@@ -9,7 +10,7 @@ export function RequestError({ error, className }: RequestErrorProps): ReactElem
   const problems = error instanceof TelefactorRequestError ? error.problems : [];
   return (
     <div className={className} role="alert">
-      <p>{error instanceof Error ? error.message : String(error)}</p>
+      <p>{describeError(error)}</p>
       {problems.length > 0 && <ProblemList problems={problems} />}
     </div>
   );

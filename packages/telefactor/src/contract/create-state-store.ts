@@ -1,4 +1,5 @@
-import { describeError } from '#src/portable/describe-error.ts';
+import { describeError } from '@williamthorsen/toolbelt.errors';
+
 import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 
 import { type Contract, getInputSchema, isActionName } from './define-contract.ts';
