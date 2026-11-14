@@ -1,4 +1,5 @@
 import { createMcpHandler } from '@modelcontextprotocol/server';
+import { describeError } from '@williamthorsen/toolbelt.errors';
 import { type Context, type Env, Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { z } from 'zod';
@@ -15,7 +16,6 @@ import type { HarnessSettingsResult } from '#src/harness/read-settings.ts';
 import { findHarness } from '#src/harness/settings-schema.ts';
 import type { Jobs } from '#src/jobs/create-jobs.ts';
 import { createMcpServer } from '#src/mcp/create-mcp-server.ts';
-import { describeError } from '#src/portable/describe-error.ts';
 import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 import type { TerminalSessions } from '#src/terminal/create-terminal-sessions.ts';
 

@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 
+import { describeError } from '@williamthorsen/toolbelt.errors';
 import { z } from 'zod';
 
-import { describeError } from '#src/portable/describe-error.ts';
 import { formatIssuePath, type Problem } from '#src/schemas/problem.ts';
 
 import {

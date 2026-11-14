@@ -365,6 +365,9 @@ importers:
       '@williamthorsen/terminal-react':
         specifier: 'catalog:'
         version: 0.1.0(react@19.3.1)
+      '@williamthorsen/toolbelt.errors':
+        specifier: 0.10.1
+        version: 0.10.1
       '@xterm/addon-serialize':
         specifier: 0.14.0
         version: 0.14.0
