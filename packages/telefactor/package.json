@@ -92,7 +92,7 @@
     }
   },
   "engines": {
-    "node": ">=26"
+    "node": ">=24"
   },
   "publishConfig": {
     "access": "public"
