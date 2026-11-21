@@ -54,10 +54,10 @@
     "prepublishOnly": "nmr build"
   },
   "dependencies": {
-    "@hono/node-server": "2.1.8",
+    "@hono/node-server": "2.1.11",
     "@modelcontextprotocol/server": "2.4.0",
     "@williamthorsen/terminal-react": "catalog:",
-    "@williamthorsen/toolbelt.errors": "0.11.3",
+    "@williamthorsen/toolbelt.errors": "0.11.4",
     "@xterm/addon-serialize": "0.14.0",
     "@xterm/headless": "6.0.0",
     "hono": "4.13.19",
