@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.0 — 2026-11-21
+
+### 🎉 Features
+
+- Restore the Node 24 engines floor (#43)
+
+  Lowers the `engines.node` floor of `@williamthorsen/telefactor` from `>=26` to `>=24`, so that the next release continues to support Node 24, an LTS line that remains supported until April 2028.
+
+### 🪦 Removed
+
+- 🚨 **Breaking:** Require Node 26 (#41)
+
+  Drops support for Node.js 24 and 25 by raising the `engines.node` requirement of `@williamthorsen/telefactor` to `>=26`.
+
 ## 0.1.4 — 2026-11-08
 
 ### 📦 Dependencies

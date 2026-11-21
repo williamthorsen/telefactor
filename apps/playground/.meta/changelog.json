@@ -1,5 +1,34 @@
 [
   {
+    "version": "0.2.0",
+    "date": "2026-11-21",
+    "sections": [
+      {
+        "title": "🎉 Features",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Restore the Node 24 engines floor (#43)",
+            "body": "Lowers the `engines.node` floor of `@williamthorsen/telefactor` from `>=26` to `>=24`, so that the next release continues to support Node 24, an LTS line that remains supported until April 2028.",
+            "hash": "17c7457072c18929358351f1fd49519a9a093bd3"
+          }
+        ]
+      },
+      {
+        "title": "🪦 Removed",
+        "audience": "all",
+        "items": [
+          {
+            "description": "Require Node 26 (#41)",
+            "body": "Drops support for Node.js 24 and 25 by raising the `engines.node` requirement of `@williamthorsen/telefactor` to `>=26`.",
+            "breaking": true,
+            "hash": "1b8d3afb87ab54645c1f2edd4f6d4217cde4c5d2"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.1.4",
     "date": "2026-11-08",
     "sections": [

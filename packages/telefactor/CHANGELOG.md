@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.0 — 2026-11-21
+
+### 🎉 Features
+
+- Restores Node 24 support in `@williamthorsen/telefactor` by lowering its `engines.node` floor from `>=26` to `>=24`. (#43)
+
+### 🪦 Removed
+
+- 🚨 **Breaking:** Drops support for Node.js 24 and 25 by raising the `engines.node` requirement of `@williamthorsen/telefactor` from `>=24` to `>=26`. (#41)
+
+### ♻️ Refactoring
+
+- Replaces the local `describeError` and the inline `instanceof Error` check in `RequestError` with `describeError` from `@williamthorsen/toolbelt.errors`, which describes an `Error` that has an empty message as `String(error)`, such as "Error", rather than as an empty string. (#40)
+
 ## 0.4.1 — 2026-11-08
 
 ### 🐛 Bug fixes

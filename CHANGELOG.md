@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.0 — 2026-11-21
+
+### 🎉 Features
+
+- Restores Node 24 support in `@williamthorsen/telefactor` by lowering its `engines.node` floor from `>=26` to `>=24`. (#43)
+
+### 🪦 Removed
+
+- 🚨 **Breaking:** Drops support for Node.js 24 and 25 by raising the `engines.node` requirement of `@williamthorsen/telefactor` from `>=24` to `>=26`. (#41)
+
+### ♻️ Refactoring
+
+- Replaces the local `describeError` and the inline `instanceof Error` check in `RequestError` with `describeError` from `@williamthorsen/toolbelt.errors`, which describes an `Error` that has an empty message as `String(error)`, such as "Error", rather than as an empty string. (#40)
+
+### ⚙️ Tooling
+
+- Pins Node.js 26.13.1 in `.tool-versions` in place of 24.22.3 and leaves the `engines` floor at `>=24`. (#39)
+
+### 📦 Dependencies
+
+- Upgrades `@williamthorsen/eslint-config-typescript` from 21.0.0 to 22.0.0, which depends on the `typescript-eslint` 8.72.2 declared by the root and removes the second copy of `typescript-eslint` 8.72.1 from the lockfile. (#40)
+
 ## 0.4.1 — 2026-11-08
 
 ### 🐛 Bug fixes
